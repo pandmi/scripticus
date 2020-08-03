@@ -5,6 +5,14 @@ import seaborn as sns
 
 
 #   campaigns - underpacing 
+
+def frequency_min_up(x):
+    r = 'red'
+    m1 = x['f_amount'] > 0
+    m2 = x['f_amount'] < 4
+    df1 = pd.DataFrame('background-color: ', index=x.index, columns=x.columns)
+    df1['f_amount'] = np.where(((m1 & m2)), 'background-color: {}'.format(r), df1['f_amount'])
+    return df1
    
 def frequency_min(x):
     r = 'red'
@@ -160,7 +168,7 @@ def up_strategy_table(data_ups):
     apply(troubleshooting, axis=None).\
     apply(t1_optimized, axis=None).\
     apply(bid_pass, axis=None).\
-    apply(frequency_min,  axis=None).\
+    apply(frequency_min_up, axis=None).\
     apply(even,  subset=['pacing_type', 'f_type'])
     return strundst
 
