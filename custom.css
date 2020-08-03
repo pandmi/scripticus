@@ -1,0 +1,67 @@
+#notebook-container{
+    box-shadow: none !important;
+}
+
+.container {
+    width: 100% !important;
+}
+
+
+
+div.prompt{
+  display:none;
+
+}
+
+
+.navbar-default .navbar-nav > li > a, #kernel_indicator {
+    color: rgba(255, 255, 255, 0.25);
+    border-bottom: 2px solid #ba1b09;
+    transition: all 0.25s;
+
+
+}
+
+th, td {
+  border-bottom: 1px solid #ddd;
+  padding: 5px;
+  text-align: left;
+
+
+  }
+
+
+
+.dataframe thead th, .dataframe tbody td {
+    text-align: right;
+    /* padding: 1em; */
+}
+
+
+.rendered_html pre code {
+    /* background: #fff; */
+    /* border: 1px solid #ddd;
+    border-left: 3px solid #054b85; */
+    /* color: #444; */
+    page-break-inside: avoid;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 1.6em;
+    /* max-width: 100%; */
+    overflow: auto;
+    /* padding: 1em 1.5em; */
+    display: block;
+    word-wrap: break-word;
+
+}
+
+h1, .h1 {
+    font-size: 20px;
+    font-family: "Trebuchet MS";
+    font-size: 2.5em !important;
+
+
+    /* color: #054b85; */
+    /* width: 120% !important; */
+}
