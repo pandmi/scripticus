@@ -47,10 +47,12 @@ def t1_api_login(username,password,client_id,client_secret):
 
 class T1_API():
 
-    def __init__(self,username,password):
+    def __init__(self,username,password,client_id,client_secret):
         self.username=username
         self.password=password
-        self.resp = t1_api_login(self.username,self.password)
+        self.client_id=client_id
+        self.client_secret=client_secret
+        self.resp = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
 
 
     def campaign_meta_data(self, campaign_ids):
