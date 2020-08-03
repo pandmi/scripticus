@@ -1,17 +1,17 @@
-import smtplib, ssl
-import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.message import EmailMessage
-from email.mime.application import MIMEApplication
-import email
-import email.mime.application
-from os.path import basename, expanduser
-from email.mime.base import MIMEBase
-from email import encoders as Encoders
-from email.utils import formatdate
+import smtplib, ssl
+import os
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.message import EmailMessage           
+from email.mime.application import MIMEApplication
+import email
+import email.mime.application
+from email.mime.base import MIMEBase
 
-
+from os.path import basename, expanduser
+from email import encoders as Encoders
+from email.utils import formatdate
+from email.mime.text import MIMEText
 
 def send_email(msg_from=None, msg_to=None, msg_cc=None, msg_bcc=None, subject=None, body='', attachments=None,connection_settings=None,noreply=False,footer=True, password=None):
     def make_list(text_or_list):
@@ -28,7 +28,8 @@ Confidentiality Notice:
 This email and any attachments to it are intended only for use by the addressee.  This email and any attachments to it may contain information that is confidential, legally privileged and exempt from disclosure.  If you are not the addressee, or the person responsible for delivering this email and any attachments to it to the addressee, you are hereby notified that any disclosure, copying, distribution or use of the email and any attachments to it is strictly prohibited.  If you have received this transmission in error, please contact the sender and delete the email, including any attachments to it, from your computer.  Thank you."""
     
     msg['Subject'] = subject
-    msg.attach(MIMEText(body + CONF_FOOTER))
+    # msg.attach(MIMEText(body + CONF_FOOTER))
+    msg.attach(MIMEText(body))
     
     if msg_from:
         msg['From'] = ','.join(make_list(msg_from))
