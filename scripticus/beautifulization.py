@@ -148,7 +148,7 @@ def table_style(df,color,kpi):
 def up_campaign_table(data_upc):
 
     cm = sns.light_palette("blue", as_cmap=True)
-    format_dict = {'Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
+    format_dict = {'spend_to_pace':'{0:,.1f}','spend_yesterday':'{0:,.1f}','cap_amount':'{0:,.1f}','pacing':'{0:,.2f}','daily_spend':'{0:,.2f}','min_bid':'{0:,.2f}','max_bid':'{0:,.2f}','goal_value':'{0:,.2f}','deal_min':'{0:,.1f}','deal_max':'{0:,.1f}','bid_rate': '{:.0%}','win_rate': '{:.0%}','Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
     tpsps = data_upc.style.format(format_dict).hide_index().\
     apply(highlight_greater, axis=None).\
     apply(frequency_min,  axis=None).\
@@ -157,7 +157,7 @@ def up_campaign_table(data_upc):
 
 def up_strategy_table(data_ups):
     cm = sns.light_palette("blue", as_cmap=True)
-    format_dict = {'Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}','deal_mean':'{0:,.2f}', 'daily_spend':'{0:,.2f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
+    format_dict = {'spend_to_pace':'{0:,.1f}','spend_yesterday':'{0:,.1f}','cap_amount':'{0:,.1f}','pacing':'{0:,.2f}','daily_spend':'{0:,.2f}','min_bid':'{0:,.2f}','max_bid':'{0:,.2f}','goal_value':'{0:,.2f}','deal_min':'{0:,.1f}','deal_max':'{0:,.1f}','bid_rate': '{:.0%}','win_rate': '{:.0%}','Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}','deal_mean':'{0:,.2f}', 'daily_spend':'{0:,.2f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
     strundst = data_ups.style.format(format_dict).hide_index().\
     apply(reach,  subset=['goal']).\
     apply(reach_cpm, axis=None).\
@@ -171,4 +171,3 @@ def up_strategy_table(data_ups):
     apply(frequency_min_up, axis=None).\
     apply(even,  subset=['pacing_type', 'f_type'])
     return strundst
-
