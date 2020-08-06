@@ -107,7 +107,7 @@ def winrate(x):
 def t1_optimized(x):
     r = 'slateblue'
     m0 = x['f_type'] == 'no-limit'
-    m1 = x['f_amount'] = 0 
+    m1 = x['f_amount'] == 0 
     df1 = pd.DataFrame('background-color: ', index=x.index, columns=x.columns)
     df1['f_type'] = np.where(((m0|m1)), 'background-color: {}'.format(r), df1['f_type'])
     df1['f_amount'] = np.where(((m0|m1)), 'background-color: {}'.format(r), df1['f_amount'])
