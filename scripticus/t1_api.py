@@ -659,7 +659,7 @@ class T1_API():
         strategy_underpacing['goal_value'] = pd.to_numeric(strategy_underpacing['goal_value'])
         strategy_underpacing['daily_spend'] = pd.to_numeric(strategy_underpacing['daily_spend'])
         strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
-        return strategy_underpacing
+        return strategy_underpacing, strategy_ids
 
       
 
