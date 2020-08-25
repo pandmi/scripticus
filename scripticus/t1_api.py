@@ -610,18 +610,7 @@ class T1_API():
             df_dg = df_dg[(df_dg['deal_group_status'] == True)]
         else:
             df_dg = pd.DataFrame(columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
-        
-        
-        
-        # df_dg_data = []
-        # df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
-        # for index, row in df_dg_raw.iterrows():
-        #     for deal in row['deal_ids']:
-        #         r = [deal, row['id'], row['name'], row['status']]
-        #         df_dg_data.append(r)
-        # df_dg = pd.DataFrame(data=df_dg_data, columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
-        # df_dg = df_dg[(df_dg['deal_group_status'] == True)]
-
+       
 
         str_deal_metadata = self.str_deal_metadata(strategy_ids)       
         str_deal_group_metadata = self.str_deal_group_metadata(strategy_ids)
@@ -659,7 +648,9 @@ class T1_API():
         strategy_underpacing['goal_value'] = pd.to_numeric(strategy_underpacing['goal_value'])
         strategy_underpacing['daily_spend'] = pd.to_numeric(strategy_underpacing['daily_spend'])
         strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
-        return strategy_underpacing, strategy_ids
+        strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] == 0.00)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
+        strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
+        return strategy_underpacing, strategy_tr_ids
 
       
 
