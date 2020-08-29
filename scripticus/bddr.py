@@ -4,9 +4,6 @@ import time
 import pandas as pd
 import numpy as np
 
-
-# Test commit
-
 def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
     df_final = pd.DataFrame()
      
