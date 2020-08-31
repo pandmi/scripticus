@@ -442,17 +442,17 @@ class T1_API():
                 win_los_df = pd.concat([win_los_df, win_los_df_tmp])
         return win_los_df
 
-    def get_deals(self, campaign_ids):
+    def get_deals(self, strategy_ids):
             data = self.resp.json()
             sessionid=data['data']['session']['sessionid']
             conn = http.client.HTTPSConnection("api.mediamath.com")
             headers = { 'cookie': 'adama_session='+sessionid}
             deals_df = pd.DataFrame()
-            for campaign_id in campaign_ids:
+            for strategy_id in strategy_ids:  
                 offset = 0
                 offset_total = 1
                 while offset < offset_total:
-                    url_page = 'https://api.mediamath.com/media/v1.0/deals?owner.campaign_id={}&page_limit=1000&page_offset='.format(str(campaign_id)) + str(offset)
+                    url_page = 'https://api.mediamath.com/media/v1.0/deals?strategy_id={}&page_limit=1000&page_offset='.format(str(strategy_id)) + str(offset)
                     deals_data = requests.get(url_page, headers=headers).text
                     deals_df_tmp = pd.io.json.json_normalize(json.loads(deals_data)['data'])
                     meta_df = pd.io.json.json_normalize(json.loads(deals_data)['meta'])
@@ -474,7 +474,7 @@ class T1_API():
                 offset = 0
                 offset_total = 1
                 while offset < offset_total:
-                    url_page = 'https://api.mediamath.com/media/v1.0/deal_groups?owner.strategy_id={}&page_limit=100&page_offset='.format(str(strategy_id)) + str(offset)
+                    url_page = 'https://api.mediamath.com/media/v1.0/deal_groups?strategy_id={}&page_limit=100&page_offset='.format(str(strategy_id)) + str(offset)
                     deals_data = requests.get(url_page, headers=headers).text
                     df_dg_tmp = pd.io.json.json_normalize(json.loads(deals_data)['data'])
                     meta_df = pd.io.json.json_normalize(json.loads(deals_data)['meta'])
