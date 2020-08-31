@@ -54,6 +54,7 @@ class T1_API():
         self.client_id=client_id
         self.client_secret=client_secret
         self.resp = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
+     
 
 
     def campaign_meta_data(self, campaign_ids):
@@ -383,12 +384,13 @@ class T1_API():
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
         camp_goal_df = pd.DataFrame()
+        data = self.resp.json()
+        sessionid=data['data']['session']['sessionid']
+        conn = http.client.HTTPSConnection("api.mediamath.com")
+        headers = { 'cookie': 'adama_session='+sessionid}
+       
         for campaign_id in campaign_ids:
             url_devtech_org='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,campaign_goal_type,campaign_goal_value&filter=campaign_id={}&metrics=impressions,clicks,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
             conn.request("GET", url_devtech_org, headers=headers)
             camp_goal_df_tmp= pd.read_csv(conn.getresponse())
             if len(camp_goal_df) == 0:
@@ -405,17 +407,16 @@ class T1_API():
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
         camp_perf_df = pd.DataFrame()
+        data = self.resp.json()
+        sessionid=data['data']['session']['sessionid']
+        conn = http.client.HTTPSConnection("api.mediamath.com")
+        headers = { 'cookie': 'adama_session='+sessionid}
+        
         for campaign_id in campaign_ids:
             url_perf='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,campaign_name,strategy_id,strategy_name&filter=campaign_id={}&metrics=impressions,clicks,total_conversions,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
             conn.request("GET", url_perf, headers=headers)
             camp_perf_df_tmp= pd.read_csv(conn.getresponse())
-        
-
+    
             if len(camp_perf_df) == 0:
                 camp_perf_df = camp_perf_df_tmp
             else:
@@ -427,13 +428,13 @@ class T1_API():
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
         win_los_df = pd.DataFrame()
+        data = self.resp.json()
+        sessionid=data['data']['session']['sessionid']
+        conn = http.client.HTTPSConnection("api.mediamath.com")
+        headers = { 'cookie': 'adama_session='+sessionid}
+        
         for campaign_id in campaign_ids:
             url_winlos='https://api.mediamath.com/reporting/v1/std/win_loss?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_start_date,campaign_end_date,campaign_budget,strategy_id&filter=campaign_id={}&metrics=average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins&precision=2&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
             conn.request("GET", url_winlos, headers=headers)
             win_los_df_tmp= pd.read_csv(conn.getresponse())
             if len(win_los_df) == 0:
@@ -579,7 +580,7 @@ class T1_API():
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
         return camp_underpacing_final
 
-    def underpacing_strategies(self, campaign_ids, organization_id):
+    def underpacing_strategies(self, campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
         df_deals = self.get_deals(strategy_ids)
         if len(df_deals) !=0:
