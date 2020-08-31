@@ -581,7 +581,7 @@ class T1_API():
 
     def underpacing_strategies(self, campaign_ids, organization_id):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
-        df_deals = self.get_deals(organization_id)
+        df_deals = self.get_deals(campaign_ids)
         if len(df_deals) !=0:
             # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
             df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
@@ -598,7 +598,7 @@ class T1_API():
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
         
-        df_dg_raw  = self.get_deal_groups(organization_id)
+        df_dg_raw  = self.get_deal_groups(strategy_ids)
         if len(df_dg_raw) !=0:
             df_dg_data = []
             df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
