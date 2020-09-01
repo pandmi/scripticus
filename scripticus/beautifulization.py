@@ -157,7 +157,6 @@ def up_strategy_table(data_ups):
     format_dict = {'spend_to_pace':'{0:,.1f}','spend_yesterday':'{0:,.1f}','cap_amount':'{0:,.1f}','pacing':'{0:,.2f}','min_bid':'{0:,.2f}','max_bid':'{0:,.2f}','goal_value':'{0:,.2f}','deal_min':'{0:,.1f}','deal_max':'{0:,.1f}','bid_rate': '{:,.1f}','win_rate': '{:,.1f}','Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}','deal_mean':'{0:,.2f}', 'daily_spend':'{0:,.2f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPA': '{0:,.1f}'}
     strundst = data_ups.style.format(format_dict).hide_index().\
     apply(reach,  subset=['goal']).\
-    apply(reach_cpm, axis=None).\
     apply(vcr, axis=None).\
     apply(winrate, axis=None).\
     apply(min_deal_bid, axis=None).\
@@ -169,12 +168,12 @@ def up_strategy_table(data_ups):
     apply(even,  subset=['pacing_type', 'f_type'])
     return strundst
 
-def bidder_map(df, width, height, color, filter):
+def bidder_map(df, width, height, color, linewdths, lineclr, filter):
     plt.figure(figsize=(width, height))
     if filter:
         sns.heatmap(df, cmap=color, mask = df > filter, cbar=None, linewidths=.5, linecolor='lightgrey')
     else: 
-        sns.heatmap(df, cmap=color, cbar=None, linewidths=.5, linecolor='lightgrey', cbar_kws={'label': 'matches'})
+        sns.heatmap(df, cmap=color, cbar=None, linewidths=linewidths, linecolor=linecolor, cbar=True, cbar_kws={'label': 'matches'})
 
     plt.xlabel("targeting dimensions")
     return plt

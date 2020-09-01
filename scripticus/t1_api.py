@@ -578,7 +578,7 @@ class T1_API():
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
         return camp_underpacing_final
 
-    def underpacing_strategies(self, campaign_ids, organization_id):
+    def underpacing_strategies(self, campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
         df_deals = self.get_deals(strategy_ids)
         if len(df_deals) !=0:
@@ -649,7 +649,7 @@ class T1_API():
         strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
         strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] < 0.05)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
-        return strategy_underpacing, strategy_tr_ids
+        return strategy_underpacing, strategy_tr_ids, strategy_ids
 
       
 
