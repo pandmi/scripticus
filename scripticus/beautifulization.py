@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns 
-
+import matplotlib.pyplot as plt
 
 
 #   campaigns - underpacing 
@@ -140,7 +140,7 @@ def reach(data, color='pink'):
 
 def table_style(df,color,kpi):
         cm = sns.light_palette(color, as_cmap=True)
-        format_dict = {'clickers_mu':'{0:,.0f}','audience_index_impression':'{0:,.0f}', 'target_accuracy':'{0:,.0%}','audience_index_clicks':'{0:,.0f}','total_spend':'{0:,.1f}', 'Latest Hour of Activity':'{0:,.0f}','Scheduled End Hour':'{0:,.0f}', 'total_revenue':'{0:,.1f}','NDC':'{0:,.2f}','LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
+        format_dict = {'clickers_mu':'{0:,.0f}','audience_index_impression':'{0:,.0f}', 'Spend To Pace': '{:.1f}', 'target_accuracy':'{0:,.0%}','audience_index_clicks':'{0:,.0f}','total_spend':'{0:,.1f}', 'Latest Hour of Activity':'{0:,.0f}','Scheduled End Hour':'{0:,.0f}', 'total_revenue':'{0:,.1f}','NDC':'{0:,.2f}','LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
         stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
         return stdf
 
@@ -171,3 +171,14 @@ def up_strategy_table(data_ups):
     apply(frequency_min_up, axis=None).\
     apply(even,  subset=['pacing_type', 'f_type'])
     return strundst
+
+def bidder_map(df, width, height, color, filter):
+    plt.figure(figsize=(width, height))
+    cmap = sns.cubehelix_palette(as_cmap=True, light=.9)
+    if filter:
+        sns.heatmap(df, cmap=color, mask = df > filter, cbar=None, linewidths=.5, linecolor='lightgrey')
+    else: 
+        sns.heatmap(df, cmap=color, cbar=None, linewidths=.5, linecolor='lightgrey')
+
+    plt.xlabel("targeting dimensions")
+    return plt

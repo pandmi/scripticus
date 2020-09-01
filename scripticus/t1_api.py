@@ -580,7 +580,7 @@ class T1_API():
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
         return camp_underpacing_final
 
-    def underpacing_strategies(self, campaign_ids):
+    def underpacing_strategies(self, campaign_ids, organization_id):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
         df_deals = self.get_deals(strategy_ids)
         if len(df_deals) !=0:
