@@ -173,7 +173,7 @@ def bidder_map(df, width, height, color, linewdths, lineclr, filter):
     if filter:
         sns.heatmap(df, cmap=color, mask = df > filter, cbar=None, linewidths=.5, linecolor='lightgrey')
     else: 
-        sns.heatmap(df, cmap=color, cbar=None, linewidths=linewdths, linecolor=lineclr, cbar=True, cbar_kws={'label': 'matches'})
+        sns.heatmap(df, cmap=color, linewidths=linewdths, linecolor=lineclr, cbar=True, cbar_kws={'label': 'matches'})
 
     plt.xlabel("targeting dimensions")
     return plt
