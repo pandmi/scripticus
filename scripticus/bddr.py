@@ -47,12 +47,11 @@ def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
             df_final = df
         else:
             df_final = pd.concat([df_final, df], sort=False,ignore_index=True)
-
         df_final = df_final[ ['Overall'] + [ col for col in df_final.columns if col != 'Overall' ] ]
         df_final = df_final[ ['strategy_id'] + [ col for col in df_final.columns if col != 'strategy_id' ] ]
-        df_final = df_final.apply(pd.to_numeric, errors='ignore')
         df_final.set_index('strategy_id', inplace=True)
-              
+        df_final = df_final.apply(pd.to_numeric, errors='ignore')
+ 
     return df_final
 
 
