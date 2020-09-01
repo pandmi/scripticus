@@ -168,7 +168,7 @@ def up_strategy_table(data_ups):
     apply(even,  subset=['pacing_type', 'f_type'])
     return strundst
 
-def bidder_map(df, width, height, color, linewdths, lineclr, filter):
+def bidder_heatmap(df, width, height, color, linewdths, lineclr, filter):
     plt.figure(figsize=(width, height))
     if filter:
         sns.heatmap(df, cmap=color, mask = df > filter, cbar=None, linewidths=.5, linecolor='lightgrey')
