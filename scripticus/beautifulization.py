@@ -189,12 +189,10 @@ def highlight_max(data, color='white'):
         return [attr if v else '' for v in is_max]
     else:  # from .apply(axis=None)
         is_max = data == data.max().max()
-        return pd.DataFrame(np.where(is_max, attr, ''),
-                            index=data.index, columns=data.columns)
+        return pd.DataFrame(np.where(is_max, attr, ''),index=data.index, columns=data.columns)
 
   
 def bidder_table(df, color):
     df.fillna(df.max().max()+1, inplace=True)
     max_val = df.max().max()
-    df_styled=df.style.format("{:.0f}").background_gradient(cmap= color, axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
-    return df_styled
+    return df.style.format("{:.0f}").background_gradient(cmap= color, axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
