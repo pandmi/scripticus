@@ -177,3 +177,24 @@ def bidder_heatmap(df, width, height, color, linewdths, lineclr, filter):
 
     plt.xlabel("targeting dimensions")
     return plt
+
+def color_max_white(val, max_val):
+    color = 'white' if val == max_val else 'black'
+    return 'color: %s' % color
+
+def highlight_max(data, color='white'):
+    attr = 'background-color: {}'.format(color)
+    if data.ndim == 1:  # Series from .apply(axis=0) or axis=1
+        is_max = data == data.max()
+        return [attr if v else '' for v in is_max]
+    else:  # from .apply(axis=None)
+        is_max = data == data.max().max()
+        return pd.DataFrame(np.where(is_max, attr, ''),
+                            index=data.index, columns=data.columns)
+
+  
+def bidder_table(df, color):
+    df.fillna(df.max().max()+1, inplace=True)
+    max_val = df.max().max()
+    df.style.format("{:.0f}").background_gradient(cmap='RdYlGn', axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
+    return df
