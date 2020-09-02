@@ -195,4 +195,5 @@ def highlight_max(data, color='white'):
 def bidder_table(df, color):
     df.fillna(df.max().max()+1, inplace=True)
     max_val = df.max().max()
-    return df.style.format("{:.0f}").background_gradient(cmap= color, axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
+    dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
+    return dfs
