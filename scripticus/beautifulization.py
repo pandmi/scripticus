@@ -169,6 +169,7 @@ def up_strategy_table(data_ups):
     return strundst
 
 def bidder_heatmap(df, width, height, color, linewdths, lineclr, filter):
+    df.set_index('strategy_id', inplace=True)
     plt.figure(figsize=(width, height))
     if filter:
         sns.heatmap(df, cmap=color, mask = df > filter, cbar=None, linewidths=.5, linecolor='lightgrey')
@@ -193,8 +194,9 @@ def highlight_max(data, color='white'):
 
   
 def bidder_table(df, color):
+    df.set_index('strategy_id', inplace=True)
     df.fillna(df.max().max()+1, inplace=True)
     max_val = df.max().max()
     dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(lambda x: color_max_white(x, max_val)).apply(highlight_max, axis=None)
-    
+
     return dfs
