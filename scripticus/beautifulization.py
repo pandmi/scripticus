@@ -185,5 +185,5 @@ def color_max_white(val):
 
 def bidder_table(df, color):
     df.set_index('strategy_id', inplace=True)
-    dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(lambda x: color_max_white(val)).highlight_null(null_color='white')
+    dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(color_max_white).highlight_null(null_color='white')
     return dfs
