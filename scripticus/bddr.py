@@ -14,9 +14,7 @@ def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
         url_bidder_sts = 'http://{}-bidder-x{}.mediamath.com:8081/strategy_target?op=create&strategy={}&max_recs=&max_runtime=&stop=&fmt=json'.format(bidder_location,bidder_number, strategy_id)
         data_start = urllib.request.urlopen(url_bidder_sts).read()
         output_start = json.loads(data_start)
-      
-             
-       
+   
         try:   
             test_id = output_start['test_id']
             time.sleep(sec)
@@ -25,8 +23,7 @@ def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
             output_final = json.loads(data_final)            
             df_target = json_normalize(output_final['result'],record_path=['by_target'])
             df_overall = json_normalize(output_final['result']['overall'])     
-        
-     
+
         
         except KeyError:
 
@@ -49,9 +46,7 @@ def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
             df_final = pd.concat([df_final, df], sort=False,ignore_index=True)
         df_final = df_final[ ['Overall'] + [ col for col in df_final.columns if col != 'Overall' ] ]
         df_final = df_final[ ['strategy_id'] + [ col for col in df_final.columns if col != 'strategy_id' ] ]
-        # df_final.set_index('strategy_id', inplace=True)
-        # df_final = df_final.apply(pd.to_numeric, errors='ignore')
- 
+
     return df_final
 
 

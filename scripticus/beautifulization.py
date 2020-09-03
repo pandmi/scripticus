@@ -179,11 +179,11 @@ def bidder_heatmap(df, width, height, color, linewdths, lineclr, filter):
     plt.xlabel("targeting dimensions")
     return plt
 
-def color_max_white(val, max_val):
+def color_max_white(val):
     color = 'white' if pd.isna(val) else 'black'
     return 'color: %s' % color
 
 def bidder_table(df, color):
     df.set_index('strategy_id', inplace=True)
-    dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(lambda x: color_max_white(x, max_val)).highlight_null(null_color='white')
+    dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(lambda x: color_max_white(val)).highlight_null(null_color='white')
     return dfs
