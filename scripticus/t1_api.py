@@ -496,7 +496,7 @@ class T1_API():
             'Microsoft Ad Exchange', 'Right Media Exchange',
             'Brightroll for Display', 'MoPub']
         if crap.empty:
-            return print('All creatives are approved!')
+            return print('All creatives are approved!'), crap
         else:
             return  print('Please check the approval status of your creatives!'), crap
 
