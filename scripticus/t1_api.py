@@ -440,6 +440,66 @@ class T1_API():
             else:
                 win_los_df = pd.concat([win_los_df, win_los_df_tmp])
         return win_los_df
+    
+
+    def creative_performance_report(self, campaign_ids):
+        dt_today = date.today()
+        today=dt_today.strftime('%Y-%m-%d')
+        start = date.today() - timedelta(1)
+        end = date.today() - timedelta(2)
+        start_date = end.strftime('%Y-%m-%d')
+        end_date = start.strftime('%Y-%m-%d')
+        creative_perf_df = pd.DataFrame()
+        for campaign_id in campaign_ids:
+            url_perf='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,campaign_name,concept_id,concept_name,creative_id&filter=campaign_id={}&metrics=impressions,total_spend&precision=4&time_rollup=all&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
+            data = self.resp.json()
+            sessionid=data['data']['session']['sessionid']
+            conn = http.client.HTTPSConnection("api.mediamath.com")
+            headers = { 'cookie': 'adama_session='+sessionid}
+            conn.request("GET", url_perf, headers=headers)
+            creative_perf_df_tmp= pd.read_csv(conn.getresponse())
+            if len(creative_perf_df) == 0:
+                creative_perf_df = creative_perf_df_tmp
+            else:
+                creative_perf_df = pd.concat([creative_perf_df, creative_perf_df_tmp])
+        
+        creative_ids=creative_perf_df['creative_id'].unique()
+       
+        return creative_ids, creative_perf_df
+
+    def creative_approval_report (self, creative_ids):
+        creative_aprov_df = pd.DataFrame()
+        for creative_id in creative_ids:
+            url_perf='https://api.mediamath.com/api/v2.0/atomic_creatives/creative_approvals_report?atomic_creative_ids=({})'.format(creative_id)
+            data = self.resp.json()
+            sessionid=data['data']['session']['sessionid']
+            conn = http.client.HTTPSConnection("api.mediamath.com")
+            headers = { 'cookie': 'adama_session='+sessionid}
+            conn.request("GET", url_perf, headers=headers)
+            creative_aprov_df_tmp= pd.read_csv(conn.getresponse(), encoding='latin-1')
+            if len(creative_aprov_df) == 0:
+                creative_aprov_df = creative_aprov_df_tmp
+            else:
+                creative_aprov_df = pd.concat([creative_aprov_df, creative_aprov_df_tmp])
+        
+        return creative_aprov_df
+ 
+    def creative_approval(self, campaign_ids):
+        creative_ids, creative_perf_df = self.creative_performance_report(campaign_ids)
+        creative_aprov_df = self.creative_approval_report(creative_ids)
+        camp_aproval = pd.merge(creative_perf_df, creative_aprov_df ,  how='left', left_on=['creative_id'],right_on=['Creative ID'])
+        camp_aproval_df = camp_aproval[(camp_aproval['Net Status'] == 'PENDING') | (camp_aproval['Net Status'] == 'REJECTED')]
+        crap =  camp_aproval_df[['campaign_id', 'campaign_name', 'concept_name', 'Creative ID', 'Creative Name','Net Status', 'AdX Open Auction', 'AdX Deals', 'AppNexus',
+            'Microsoft Ad Exchange', 'Right Media Exchange',
+            'Brightroll for Display', 'MoPub']]
+        crap.columns = ['Campaign ID', 'Campaign name', 'Concept Name', 'Creative ID', 'Creative Name','Net Status', 'AdX Open Auction', 'AdX Deals', 'AppNexus',
+            'Microsoft Ad Exchange', 'Right Media Exchange',
+            'Brightroll for Display', 'MoPub']
+        if crap.empty:
+            return print('All creatives are approved!')
+        else:
+            return  print('Please check the approval status of your creatives!'), crap
+
 
     def get_deals(self, strategy_ids):
             data = self.resp.json()
@@ -651,7 +711,7 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
 
-      
+    
 
         # video = '/reporting/v1/std/video?dimensions=campaign_name,strategy_name,exchange_name,creative_name,concept_name,creative_size&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete,viewability_rate_100_percent,viewability_rate&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
 # geo = '/reporting/v1/std/geo?dimensions=agency_name,advertiser_name,country_name,region_name,metro_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend,video_start,video_complete&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)

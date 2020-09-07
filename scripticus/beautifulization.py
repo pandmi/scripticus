@@ -136,6 +136,23 @@ def reach(data, color='pink'):
         return pd.DataFrame(np.where(is_max, attr, ''),
                             index=data.index, columns=data.columns)  
 
+def pending(x):
+    r = 'orange'
+    m1 = x['Net Status'] =='PENDING'
+    df1 = pd.DataFrame('background-color: ', index=x.index, columns=x.columns)
+    df1['Net Status'] = np.where(m1, 'background-color: {}'.format(r), df1['Net Status'])
+ 
+    return df1
+
+
+def rejected(x):
+    r = 'red'
+    m1 = x['Net Status'] =='REJECTED'
+    df1 = pd.DataFrame('background-color: ', index=x.index, columns=x.columns)
+    df1['Net Status'] = np.where(m1, 'background-color: {}'.format(r), df1['Net Status'])
+ 
+    return df1
+
 
 
 def table_style(df,color,kpi):
@@ -185,3 +202,10 @@ def color_max_white(val):
 def bidder_table(df, color):
     dfs=df.style.format("{:.0f}").background_gradient(cmap=color, axis=None).applymap(color_max_white).highlight_null(null_color='white')
     return dfs
+
+def up_creative_table(crap):
+    format_dict = {'spend_to_pace':'{0:,.1f}','spend_yesterday':'{0:,.1f}','cap_amount':'{0:,.1f}','pacing':'{0:,.2f}','daily_spend':'{0:,.2f}','min_bid':'{0:,.2f}','max_bid':'{0:,.2f}','goal_value':'{0:,.2f}','deal_min':'{0:,.1f}','deal_max':'{0:,.1f}','bid_rate': '{:,.1f}','win_rate': '{:,.1f}','Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
+    craps = crap.style.format(format_dict).hide_index().\
+    apply(pending, axis=None).\
+    apply(rejected, axis=None)
+    return craps
