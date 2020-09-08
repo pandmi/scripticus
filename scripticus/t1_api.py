@@ -495,11 +495,9 @@ class T1_API():
         crap.columns = ['Campaign ID', 'Campaign name', 'Concept Name', 'Creative ID', 'Creative Name','Net Status', 'AdX Open Auction', 'AdX Deals', 'AppNexus',
             'Microsoft Ad Exchange', 'Right Media Exchange',
             'Brightroll for Display', 'MoPub']
-        if crap.empty:
-            return print('All creatives are approved!'), crap
-        else:
-            return  print('Please check the approval status of your creatives!'), crap
-
+        
+        return crap
+       
 
     def get_deals(self, strategy_ids):
             data = self.resp.json()
