@@ -654,7 +654,7 @@ class T1_API():
             df_deals_fin = df_deals[(df_deals['deal_status'] == True)]
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
-        
+            df_deals_fin = df_deals
         df_dg_raw  = self.get_deal_groups(strategy_ids)
         if len(df_dg_raw) !=0:
             df_dg_data = []
@@ -711,7 +711,22 @@ class T1_API():
 
     
 
-        # video = '/reporting/v1/std/video?dimensions=campaign_name,strategy_name,exchange_name,creative_name,concept_name,creative_size&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete,viewability_rate_100_percent,viewability_rate&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
+   
+
+
+# def t1_report(self, endpoint='performance', parameters, dimensions, metrics, sortby, ascending):
+
+
+
+#         dimensions = parameters['dimensions']
+#         report_filter = parameters['filter']
+#         metrics = parameters['metrics']
+#         time_rollup = parameters['time_rollup']
+
+
+
+# uri = '/reporting/v1/std/'+ endpoint + '?dimensions=' + dimensions + '&filter='+report_filter + '=' + filter_id + '&metrics=' + metrics + '&precision=4&time_rollup='+ time_rollup
+# video = '/reporting/v1/std/video?dimensions=campaign_name,strategy_name,exchange_name,creative_name,concept_name,creative_size&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete,viewability_rate_100_percent,viewability_rate&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
 # geo = '/reporting/v1/std/geo?dimensions=agency_name,advertiser_name,country_name,region_name,metro_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend,video_start,video_complete&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
 # device_technology='/reporting/v1/std/device_technology?dimensions=organization_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_currency_code,campaign_timezone,connection_type,device_type,os_version,inventory_type,browser,exchange_name,strategy_id,strategy_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,video_start,video_complete&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
 # reach_frequency='/reporting/v1/std/reach_frequency?dimensions=organization_id,organization_name,agency_name,advertiser_name,campaign_id,campaign_name,frequency,frequency_bin&filter=campaign_id={}&metrics=impressions,uniques,clicks,post_click_conversions,post_view_conversions,total_conversions&time_window=last_30_days&time_rollup=all'.format(campaign_id)
@@ -728,8 +743,8 @@ class T1_API():
 # day_part= '/reporting/v1/std/day_part?dimensions=campaign_name,strategy_name,exchange_name,day_part_name,weekday_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete&precision=4&time_window=campaign_to_date&time_rollup=all'.format(campaign_id) 
 
 
-# def t1_report(uri, dimensions,metrics, sortby, ascending):
-#     data = resp.json()
+
+#     data = self.resp.json()
 #     sessionid=data['data']['session']['sessionid']
 #     conn = http.client.HTTPSConnection("api.mediamath.com")
 #     headers = { 'cookie': 'adama_session='+sessionid}
