@@ -97,7 +97,7 @@ def looker_df(slug, organization_id, organisation_name, advertiser_filter, pct_t
             'Pacing exclusion']
         records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
         records_pacing=records[['Start Date','End Date','Organization', 'Advertiser Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
-        if not pct_treshold and not up_threshold:
+        if not pct_treshold and up_threshold:
             up_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Spend To Pace', ascending=False)
         if advertiser_filter:
             up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
