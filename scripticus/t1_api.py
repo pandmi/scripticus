@@ -709,67 +709,34 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
 
+
+
+        def t1_report(self, uri, dimensions,metrics, sortby, ascending):
+            data = self.resp.json()
+            sessionid=data['data']['session']['sessionid']
+            conn = http.client.HTTPSConnection("api.mediamath.com")
+            headers = { 'cookie': 'adama_session='+sessionid}
+            conn.request("GET", uri, headers=headers)
+            df = pd.read_csv(conn.getresponse())
+            if dimensions != None:
+                if (uri != day_part)& (uri != site_transparency):
+                    df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
+                    df['week_number'] = df['start_date'].dt.week
+                columns=dimensions+metrics
+                df = df[columns].groupby(dimensions, as_index=False).sum()
+                df['CPM'] = (df.total_spend*1000)/df.impressions
+                df['CTR'] = df.clicks/df.impressions
+                df['CPC'] = df.total_spend/df.clicks
+                df['CPA'] = df.total_spend/df.total_conversions
+                df['RR'] = df.total_conversions/(df.impressions/1000)
+                df['VR'] = df.in_view/measurable
+                df=df.sort_values(by=sortby, ascending=ascending)
+                df.replace([np.inf, -np.inf], np.nan)
+            
+            return df
+
     
 
    
-
-
-# def t1_report(self, endpoint='performance', parameters, dimensions, metrics, sortby, ascending):
-
-
-
-#         dimensions = parameters['dimensions']
-#         report_filter = parameters['filter']
-#         metrics = parameters['metrics']
-#         time_rollup = parameters['time_rollup']
-
-
-
-# uri = '/reporting/v1/std/'+ endpoint + '?dimensions=' + dimensions + '&filter='+report_filter + '=' + filter_id + '&metrics=' + metrics + '&precision=4&time_rollup='+ time_rollup
-# video = '/reporting/v1/std/video?dimensions=campaign_name,strategy_name,exchange_name,creative_name,concept_name,creative_size&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete,viewability_rate_100_percent,viewability_rate&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-# geo = '/reporting/v1/std/geo?dimensions=agency_name,advertiser_name,country_name,region_name,metro_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend,video_start,video_complete&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-# device_technology='/reporting/v1/std/device_technology?dimensions=organization_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_currency_code,campaign_timezone,connection_type,device_type,os_version,inventory_type,browser,exchange_name,strategy_id,strategy_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,video_start,video_complete&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-# reach_frequency='/reporting/v1/std/reach_frequency?dimensions=organization_id,organization_name,agency_name,advertiser_name,campaign_id,campaign_name,frequency,frequency_bin&filter=campaign_id={}&metrics=impressions,uniques,clicks,post_click_conversions,post_view_conversions,total_conversions&time_window=last_30_days&time_rollup=all'.format(campaign_id)
-# site_transparency='/reporting/v1/std/site_transparency?dimensions=site_domain,organization_name,agency_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget,exchange_name,strategy_id,strategy_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend,video_start,video_complete&time_window=campaign_to_date&time_rollup=all'.format(campaign_id)
-# contextual_insights='/reporting/v1/std/contextual_insights?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget,exchange_name,path,target_id,target_name,vendor_id,vendor_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend&precision=2&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)	
-# audience_index_pixel='/reporting/v1/std/audience_index_pixel?dimensions=advertiser_id,pixel_external_id,pixel_id,pixel_name,pixel_tag_type,pixel_type,audience_id,audience_name,audience_path&filter=pixel_id={}&metrics=matched_users,audience_index&time_window=last_14_days&time_rollup=all'.format(pixel_id)
-# day_part= '/reporting/v1/std/day_part?dimensions=campaign_name,strategy_name,exchange_name,day_part_name,weekday_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete&precision=4&time_window=campaign_to_date&time_rollup=all'.format(campaign_id) 
-# win_loss='/reporting/v1/std/win_loss?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget,strategy_name&filter=campaign_id={}&metrics=average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins&precision=2&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)	
-# postal_code='/reporting/v1/std/postal_code?dimensions=organization_id,organization_name,agency_name,advertiser_name,campaign_id,campaign_name,strategy_id,strategy_name,postal_code&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,video_start,video_complete&time_window=last_30_days&time_rollup=all'.format(campaign_id)
-# site_transparency='/reporting/v1/std/site_transparency?dimensions=site_domain,organization_name,agency_name,advertiser_name,campaign_id,campaign_name,campaign_start_date,campaign_end_date,campaign_budget&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,media_cost,total_ad_cost,total_spend,video_start,video_complete,viewability_rate_100_percent,viewability_rate&time_window=campaign_to_date&time_rollup=all'.format(campaign_id)
-# brain_feature_value = 'https://t1.mediamath.com/reporting/v1/std/brain_feature_value?dimensions=campaign_id,feature,feature_report_type,feature_value,index,mean,model_goal,position&filter=campaign_id={}&precision=4&time_rollup=all&order=date&time_windows=last_30_days'.format(campaign_id)
-# watermark = '/reporting/v1/std/watermark?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_name,strategy_name,campaign_start_date,campaign_end_date,campaign_budget&filter=campaign_id={}&metrics=non_watermark_impressions,watermark_impressions,watermark_spend,non_watermark_spend&precision=2&time_rollup=all&time_window=last_3_days'.format(campaign_id)	
-# brain_feature_summary = '/reporting/v1/std/brain_feature_summary?dimensions=campaign_id,feature,index,model_goal,position&filter=campaign_id={}&precision=4&time_rollup=by_day&time_window=last_30_days'.format(campaign_id)
-# day_part= '/reporting/v1/std/day_part?dimensions=campaign_name,strategy_name,exchange_name,day_part_name,weekday_name&filter=campaign_id={}&metrics=impressions,clicks,post_click_conversions,post_view_conversions,total_conversions,total_spend,media_cost,video_start,video_complete&precision=4&time_window=campaign_to_date&time_rollup=all'.format(campaign_id) 
-
-
-
-#     data = self.resp.json()
-#     sessionid=data['data']['session']['sessionid']
-#     conn = http.client.HTTPSConnection("api.mediamath.com")
-#     headers = { 'cookie': 'adama_session='+sessionid}
-#     conn.request("GET", uri, headers=headers)
-#     df = pd.read_csv(conn.getresponse())
-#     if dimensions != None:
-#         if (uri != day_part)& (uri != site_transparency):
-#             df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
-#             df['week_number'] = df['start_date'].dt.week
-#         columns=dimensions+metrics
-#         df = df[columns].groupby(dimensions, as_index=False).sum()
-#         df['CPM'] = (df.total_spend*1000)/df.impressions
-#         df['CTR'] = df.clicks/df.impressions
-#         df['CPC'] = df.total_spend/df.clicks
-#         df['CPA'] = df.total_spend/df.total_conversions
-#         df['RR'] = df.total_conversions/(df.impressions/1000)
-#         df=df.sort_values(by=sortby, ascending=ascending)
-#         df.replace([np.inf, -np.inf], np.nan)
-    
-#     return df
-
-# def table_style(df,color,kpi):
-#     cm = sns.light_palette(color, as_cmap=True)
-#     format_dict = {'total_spend':'{0:,.1f}', 'total_revenue':'{0:,.1f}','NDC':'{0:,.2f}','LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
-#     stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
-#     return stdf
 
 
