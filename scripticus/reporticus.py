@@ -53,30 +53,30 @@ class T1_API():
         self.session = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
         picard = 'https://api.mediamath.com/reporting/v1/std/'
         r = self.session.get(picard + 'meta')
-        self.available_endpoints = list(json.loads(r.content)['reports'].keys())
-        self.available_endpoints.extend([
-            'performance_usd',
-            'performance_viewability',
-            'site_transparency_viewability',
-            'deals',
-            'performance_aggregated',
-            'performance_streaming'
-            ])
-        try:
-            assert endpoint in self.available_endpoints
-            self.endpoint = endpoint
-            if self.endpoint == 'deals': # This is while 'deals' is in beta
-                r = self.session.get('https://api.mediamath.com/reporting-beta/v1/std/deals/meta')
-            else:
-                r = self.session.get(picard + endpoint + '/meta')
-            self.info = json.loads(r.content)
-        except AssertionError:
-            raise AssertionError('{} is not a supported endpoint.  Endpoint must be one of the following: {}'.format(endpoint,self.available_endpoints))
-        except Exception as err:
-            print(r.content)
-            raise Exception(err)
+        # self.available_endpoints = list(json.loads(r.content)['reports'].keys())
+        # self.available_endpoints.extend([
+        #     'performance_usd',
+        #     'performance_viewability',
+        #     'site_transparency_viewability',
+        #     'deals',
+        #     'performance_aggregated',
+        #     'performance_streaming'
+        #     ])
+        # try:
+        #     assert endpoint in self.available_endpoints
+        #     self.endpoint = endpoint
+        #     if self.endpoint == 'deals': # This is while 'deals' is in beta
+        #         r = self.session.get('https://api.mediamath.com/reporting-beta/v1/std/deals/meta')
+        #     else:
+        #         r = self.session.get(picard + endpoint + '/meta')
+        #     self.info = json.loads(r.content)
+        # except AssertionError:
+        #     raise AssertionError('{} is not a supported endpoint.  Endpoint must be one of the following: {}'.format(endpoint,self.available_endpoints))
+        # except Exception as err:
+        #     print(r.content)
+        #     raise Exception(err)
 
-    def t1_report(self,*args,**kwargs): 
+    def t1_report(self,endpoint,*args,**kwargs): 
     # defining parameters
         self.params = {}
         for k in args:
