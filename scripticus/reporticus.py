@@ -78,35 +78,35 @@ class T1_API():
 
     def t1_report(self,endpoint,*args,**kwargs): 
     # defining parameters
-        self.params = {}
+        params = {}
         for k in args:
             for v in k:
                 if type(k[v]) is list:
-                    self.params[v] = ','.join(k[v])
+                    params[v] = ','.join(k[v])
                 else:
-                    self.params[v] = k[v]
+                    params[v] = k[v]
         for k in kwargs:
             if type(k) is list:
-                self.params[k] = ','.join(kwargs[k])
+                params[k] = ','.join(kwargs[k])
             else:
-                self.params[k] = kwargs[k]
+                params[k] = kwargs[k]
     # creating a call
         picard = 'https://api.mediamath.com/reporting/v1/std/'
-        if self.endpoint == 'transparency': 
-            self.endpoint = 'site_transparency'
+        if endpoint == 'transparency': 
+            endpoint = 'site_transparency'
 
-        if self.endpoint in (
+        if  endpoint in (
             'performance_usd',
             'performance_viewability',
             'site_transparency_viewability',
             'performance_aggregated',
             'performance_streaming'
             ):
-            data_url = picard + self.endpoint
-        elif self.endpoint == 'deals':
+            data_url = picard + endpoint
+        elif endpoint == 'deals':
             data_url = 'https://api.mediamath.com/reporting-beta/v1/std/deals' 
         
-        self.response = self.session.get(data_url, params=self.params, headers={'Accept-Encoding':'identity','Connection':'close'})
+        self.response = self.session.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
         data = response.content
         df = pd.read_csv(BytesIO(data))
         return df
