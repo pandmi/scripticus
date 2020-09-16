@@ -105,16 +105,7 @@ class T1_API():
             data_url = picard + self.endpoint
         elif self.endpoint == 'deals':
             data_url = 'https://api.mediamath.com/reporting-beta/v1/std/deals' 
-        else:
-            try:
-                report_metadata = all_reports_metadata.json()['reports'][self.endpoint]
-                try:
-                    data_url = report_metadata['URI_Data']
-                except KeyError:
-                    raise ValueError('No data URI found for API endpoint: {}'.format(self.endpoint))
-            except KeyError:
-                raise ValueError('No metadata found for API endpoint: {}'.format(self.endpoint))
-
+        
         self.response = self.session.get(data_url, params=self.params, headers={'Accept-Encoding':'identity','Connection':'close'})
         data = response.content
         df = pd.read_csv(BytesIO(data))
