@@ -709,31 +709,29 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
 
-
-
-        def t1_report(self, uri, dimensions,metrics, sortby, ascending):
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
-            conn.request("GET", uri, headers=headers)
-            df = pd.read_csv(conn.getresponse())
-            if dimensions != None:
-                if (uri != day_part)& (uri != site_transparency):
-                    df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
-                    df['week_number'] = df['start_date'].dt.week
-                columns=dimensions+metrics
-                df = df[columns].groupby(dimensions, as_index=False).sum()
-                df['CPM'] = (df.total_spend*1000)/df.impressions
-                df['CTR'] = df.clicks/df.impressions
-                df['CPC'] = df.total_spend/df.clicks
-                df['CPA'] = df.total_spend/df.total_conversions
-                df['RR'] = df.total_conversions/(df.impressions/1000)
-                df['VR'] = df.in_view/measurable
-                df=df.sort_values(by=sortby, ascending=ascending)
-                df.replace([np.inf, -np.inf], np.nan)
-            
-            return df
+    def t1_report(self, uri, dimensions,metrics, sortby, ascending):
+        data = self.resp.json()
+        sessionid=data['data']['session']['sessionid']
+        conn = http.client.HTTPSConnection("api.mediamath.com")
+        headers = { 'cookie': 'adama_session='+sessionid}
+        conn.request("GET", uri, headers=headers)
+        df = pd.read_csv(conn.getresponse())
+        if dimensions != None:
+            if (uri != day_part)& (uri != site_transparency):
+                df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
+                df['week_number'] = df['start_date'].dt.week
+            columns=dimensions+metrics
+            df = df[columns].groupby(dimensions, as_index=False).sum()
+            df['CPM'] = (df.total_spend*1000)/df.impressions
+            df['CTR'] = df.clicks/df.impressions
+            df['CPC'] = df.total_spend/df.clicks
+            df['CPA'] = df.total_spend/df.total_conversions
+            df['RR'] = df.total_conversions/(df.impressions/1000)
+            df['VR'] = df.in_view/measurable
+            df=df.sort_values(by=sortby, ascending=ascending)
+            df.replace([np.inf, -np.inf], np.nan)
+        
+        return df
 
     
 
