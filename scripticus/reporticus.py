@@ -51,8 +51,8 @@ class T1_API():
         self.client_id=client_id
         self.client_secret=client_secret
         self.session = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
-        picard = 'https://api.mediamath.com/reporting/v1/std/'
-        r = self.session.get(picard + 'meta')
+        # picard = 'https://api.mediamath.com/reporting/v1/std/'
+        # r = self.session.get(picard + 'meta')
         # self.available_endpoints = list(json.loads(r.content)['reports'].keys())
         # self.available_endpoints.extend([
         #     'performance_usd',
@@ -92,8 +92,6 @@ class T1_API():
                 self.params[k] = kwargs[k]
     # creating a call
         picard = 'https://api.mediamath.com/reporting/v1/std/'
-        all_reports_metadata = self.session.get(picard + 'meta')
-
         if self.endpoint == 'transparency': 
             self.endpoint = 'site_transparency'
 
@@ -122,4 +120,3 @@ class T1_API():
         df = pd.read_csv(BytesIO(data))
         return df
 
-    # def pivot_report():
