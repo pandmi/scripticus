@@ -440,6 +440,27 @@ class T1_API():
             else:
                 win_los_df = pd.concat([win_los_df, win_los_df_tmp])
         return win_los_df
+
+    def winlos_report_mtd(self, campaign_ids):
+        dt = date.today() - timedelta(1)
+        sm=datetime.today().replace(day=1)
+        start_date = sm.strftime('%Y-%m-%d')
+        end_date = dt.strftime('%Y-%m-%d')
+        win_los_df = pd.DataFrame()
+        data = self.resp.json()
+        sessionid=data['data']['session']['sessionid']
+        conn = http.client.HTTPSConnection("api.mediamath.com")
+        headers = { 'cookie': 'adama_session='+sessionid}
+        
+        for campaign_id in campaign_ids:
+            url_winlos='https://api.mediamath.com/reporting/v1/std/win_loss?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_start_date,campaign_end_date,campaign_budget,strategy_id&filter=campaign_id={}&metrics=average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins&precision=2&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
+            conn.request("GET", url_winlos, headers=headers)
+            win_los_df_tmp= pd.read_csv(conn.getresponse())
+            if len(win_los_df) == 0:
+                win_los_df = win_los_df_tmp
+            else:
+                win_los_df = pd.concat([win_los_df, win_los_df_tmp])
+        return win_los_df
     
 
     def creative_performance_report(self, campaign_ids):
@@ -709,7 +730,78 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
 
+    def underpacing_strategies_mtd(self, campaign_ids):
+        strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
+        df_deals = self.get_deals(strategy_ids)
+        if len(df_deals) !=0:
+            # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
+            df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
+            df_deals = df_deals.rename(columns = {'name' : 'deal_name',
+                                                'deal_identifier' : 'deal_external_id',
+                                                'id' : 'deal_id',
+                                                'status' : 'deal_status',
+                                                'price.value' : 'deal_floor_price',
+                                                'created_on' : 'deal_creation_date'
+                                                })
 
+            df_deals = df_deals.sort_values('deal_name')
+            df_deals_fin = df_deals[(df_deals['deal_status'] == True)]
+        else:
+            df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
+            df_deals_fin = df_deals
+        df_dg_raw  = self.get_deal_groups(strategy_ids)
+        if len(df_dg_raw) !=0:
+            df_dg_data = []
+            df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
+            for index, row in df_dg_raw.iterrows():
+                for deal in row['deal_ids']:
+                    r = [deal, row['id'], row['name'], row['status']]
+                    df_dg_data.append(r)
+            df_dg = pd.DataFrame(data=df_dg_data, columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
+            df_dg = df_dg[(df_dg['deal_group_status'] == True)]
+        else:
+            df_dg = pd.DataFrame(columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
+       
+
+        str_deal_metadata = self.str_deal_metadata(strategy_ids)       
+        str_deal_group_metadata = self.str_deal_group_metadata(strategy_ids)
+        # 3.3. Combining all deals assigned to strategy
+        str_dg_deal_metadata = pd.merge(str_deal_group_metadata, df_dg,  how='left', on=['deal_group_id'])
+        str_dg_deal_metadata = str_dg_deal_metadata[['strategy_id','deal_id']]
+        str_all_deals_metadata = pd.concat([str_dg_deal_metadata, str_deal_metadata])
+        # 3.4. Getting deal price info
+        str_deals = pd.merge(str_all_deals_metadata, df_deals_fin, how='left', left_on='deal_id', right_on='deal_id')
+        str_deals['deal_floor_price'] = str_deals['deal_floor_price'].astype(float)
+        str_deals_final = str_deals.groupby(['strategy_id']).agg({'deal_floor_price': ['mean', 'min', 'max']})
+        str_deals_final.columns = ['deal_mean_price', 'deal_min_price', 'deal_max_price']
+        str_deals_final = str_deals_final.reset_index()
+        str_setup_overview = pd.merge(st_metadata_final, str_deals_final,  how='left', on=['strategy_id'])
+        camp_perf_df = self.strategy_two_days_performance(campaign_ids)
+        win_los_df = self.winlos_report_mtd(campaign_ids)
+        # Final agregation
+        str_correction = pd.merge(str_setup_overview, win_los_df ,  how='left', on=['campaign_id','strategy_id'])
+        str_correction_perf = pd.merge(str_correction, camp_perf_df,  how='left', on=['campaign_name','campaign_id', 'strategy_name','strategy_id'])
+        str_correction_final =  str_correction_perf[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name',
+            'frequency_type', 'frequency_amount', 'pacing_type', 'pacing_amount','total_spend',
+            'min_bid', 'max_bid', 'goal_type', 'goal_value',
+            'deal_mean_price', 'deal_min_price',
+            'deal_max_price', 'bid_rate', 'win_rate']]
+        str_correction_final.columns = ['camp_id', 'campaign_name', 'strategy_id', 'strategy_name',
+            'f_type', 'f_amount', 'pacing_type', 'pacing', 'daily_spend',
+            'min_bid', 'max_bid', 'goal', 'goal_value',
+            'deal_mean', 'deal_min',
+            'deal_max', 'bid_rate', 'win_rate']
+        # str_correction = pd.merge(str_outpacing_fin_30, win_los_df, how='left', left_on='strategy_id', right_on='strategy_id')
+        strategy_underpacing = str_correction_final.replace(np.nan,0)
+        strategy_underpacing["min_bid"] = pd.to_numeric(strategy_underpacing["min_bid"])
+        strategy_underpacing["deal_max"] = pd.to_numeric(strategy_underpacing["deal_max"])
+        strategy_underpacing["max_bid"] = pd.to_numeric(strategy_underpacing["max_bid"])
+        strategy_underpacing['goal_value'] = pd.to_numeric(strategy_underpacing['goal_value'])
+        strategy_underpacing['daily_spend'] = pd.to_numeric(strategy_underpacing['daily_spend'])
+        strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
+        strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] < 0.05)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
+        strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
+        return strategy_underpacing, strategy_tr_ids, strategy_ids
     
 
    
