@@ -135,7 +135,8 @@ class T1_API():
                 df['VR'] = df.in_view/measurable
             df=df.sort_values(by=sortby, ascending=ascending)
             df.replace([np.inf, -np.inf], np.nan)
-        
+        else:
+            print('Select dimensions for pivot table!')
         return df 
 
 
