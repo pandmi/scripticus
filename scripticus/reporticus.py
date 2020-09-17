@@ -92,6 +92,7 @@ class T1_API():
                 params[k] = kwargs[k]
     # creating a call
         picard = 'https://api.mediamath.com/reporting/v1/std/'
+        data_url = picard + endpoint
         if endpoint == 'transparency': 
             endpoint = 'site_transparency'
 
