@@ -153,12 +153,13 @@ class T1_API():
                 camp_metadata = camp_metadata_tmp
             else:
                 camp_metadata = pd.concat([camp_metadata, camp_metadata_tmp])
-                
-        camp_pacing_medicine = camp_metadata[['campaign_id','campaign_name','campaign_spend_cap_automatic', 'campaign_spend_cap_type',
-                                            'campaign_spend_cap_amount','campaign_frequency_type','campaign_frequency_interval','campaign_frequency_amount']]
-        return camp_pacing_medicine
-    
 
+        camp_metadata_fin = camp_metadata[(camp_metadata['campaign_status'] == 1)]
+        campaign_active_ids=camp_metadata_fin['campaign_id'].values        
+        camp_pacing_medicine = camp_metadata_fin[['campaign_id','campaign_name','campaign_spend_cap_automatic', 'campaign_spend_cap_type',
+                                            'campaign_spend_cap_amount','campaign_frequency_type','campaign_frequency_interval','campaign_frequency_amount']]
+        return camp_pacing_medicine, campaign_active_ids
+    
     def strategy_meta_data(self, campaign_ids):
         st_metadata = pd.DataFrame()
         for campaign_id in campaign_ids:
@@ -645,8 +646,8 @@ class T1_API():
 
 
     def underpacing_campaigns(self, campaign_ids, campaigns_to_check):
-        camp_pacing_medicine = self.campaign_meta_data(campaign_ids)
-        camp_underpacing = pd.merge(campaigns_to_check, camp_pacing_medicine, how='left', left_on='Campaign ID', right_on='campaign_id')
+        camp_pacing_medicine, campaign_active_ids = self.campaign_meta_data(campaign_ids)
+        camp_underpacing = pd.merge(campaigns_to_check, camp_pacing_medicine, how='right', left_on='Campaign ID', right_on='campaign_id')
         camp_underpacing_final = camp_underpacing[['Start Date','Advertiser Name', 'Campaign ID','Campaign Name', 'Spend To Pace', 'Spend Yesterday','campaign_spend_cap_type', 'campaign_spend_cap_automatic','campaign_spend_cap_amount','campaign_frequency_type', 
                                                 'campaign_frequency_interval', 'campaign_frequency_amount']].rename(columns={"Start Date": "start_date",'Advertiser Name':'advertiser_name',
                                                                                 'Campaign ID':'campaign_id','Campaign Name':'campaign_name','campaign_spend_cap_type':'spend_cap_type','campaign_spend_cap_amount':'cap_amount','campaign_frequency_type':'frequency_type',
@@ -655,7 +656,7 @@ class T1_API():
         camp_underpacing_final["frequency_amount"] = pd.to_numeric(camp_underpacing_final["frequency_amount"])
         camp_underpacing_final["cap_amount"] = pd.to_numeric(camp_underpacing_final["cap_amount"])
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
-        return camp_underpacing_final
+        return camp_underpacing_final, campaign_active_ids
 
     def underpacing_strategies(self, campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
