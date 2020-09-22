@@ -411,7 +411,7 @@ class T1_API():
         headers = { 'cookie': 'adama_session='+sessionid}
         
         for campaign_id in campaign_ids:
-            url_perf='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,campaign_name,strategy_id,strategy_name&filter=campaign_id={}&metrics=impressions,clicks,total_conversions,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
+            url_perf='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,strategy_id&filter=campaign_id={}&metrics=impressions,clicks,total_conversions,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
             conn.request("GET", url_perf, headers=headers)
             camp_perf_df_tmp= pd.read_csv(conn.getresponse())
     
@@ -707,7 +707,7 @@ class T1_API():
         win_los_df = self.winlos_report(campaign_ids)
         # Final agregation
         str_correction = pd.merge(str_setup_overview, win_los_df ,  how='left', on=['campaign_id','strategy_id'])
-        str_correction_perf = pd.merge(str_correction, camp_perf_df,  how='left', on=['campaign_name','campaign_id', 'strategy_name','strategy_id'])
+        str_correction_perf = pd.merge(str_correction, camp_perf_df,  how='left', on=['campaign_id','strategy_id'])
         str_correction_final =  str_correction_perf[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name',
             'frequency_type', 'frequency_amount', 'pacing_type', 'pacing_amount','total_spend',
             'min_bid', 'max_bid', 'goal_type', 'goal_value',
