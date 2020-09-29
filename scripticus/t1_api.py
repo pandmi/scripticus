@@ -673,7 +673,7 @@ class T1_API():
                                                 })
 
             df_deals = df_deals.sort_values('deal_name')
-            df_deals_fin = df_deals[(df_deals['deal_status'] == True)]
+            df_deals_fin = df_deals[(df_deals['deal_status'] == True)|(df_deals['deal_status'] == 'true')]
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
             df_deals_fin = df_deals
@@ -686,7 +686,7 @@ class T1_API():
                     r = [deal, row['id'], row['name'], row['status']]
                     df_dg_data.append(r)
             df_dg = pd.DataFrame(data=df_dg_data, columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
-            df_dg = df_dg[(df_dg['deal_group_status'] == True)]
+            df_dg = df_dg[(df_dg['deal_group_status'] == True)|(df_dg['deal_group_status'] == 'true')]
         else:
             df_dg = pd.DataFrame(columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
        
