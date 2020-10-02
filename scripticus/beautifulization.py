@@ -20,8 +20,9 @@ def frequency_min(x):
     m2 = x['frequency_amount'] < 4
     m3 = x['frequency_interval'] == 'day'
     m4 = x['frequency_interval'] == 'month'
+    m5 = x['frequency_interval'] == 'week'
     df1 = pd.DataFrame('background-color: ', index=x.index, columns=x.columns)
-    df1['frequency_amount'] = np.where(((m1 & m2 & m3)| m4), 'background-color: {}'.format(r), df1['frequency_amount'])
+    df1['frequency_amount'] = np.where(((m1 & m2 & m3)| m4 | m5), 'background-color: {}'.format(r), df1['frequency_amount'])
     return df1
 
 
