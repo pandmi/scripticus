@@ -95,15 +95,15 @@ def looker_df(slug, organization_id, organisation_name, advertiser_filter, pct_t
             'Missed spend - Yesterday',
             'Latest Hour of Activity',
             'Pacing exclusion']
-        records['Days Remaining'] = pd.to_numeric(records['Days Remaining'])
+        
         records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
         records_pacing=records[['Start Date','End Date','Organization', 'Advertiser Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
         # if pct_treshold is None:
         #     up_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Spend To Pace', ascending=False)
         if advertiser_filter:
-            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
+            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(int(records_pacing['Days Remaining']) > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
         else: 
-            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
+            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(int(records_pacing['Days Remaining']) > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
         up_campaigns_ids=up_campaigns_to_check['Campaign ID'].values
         if advertiser_filter:
              op_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organisation_name) & (records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Latest Hour of Activity', ascending=True)
