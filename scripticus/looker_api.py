@@ -95,6 +95,7 @@ def looker_df(slug, organization_id, organisation_name, advertiser_filter, pct_t
             'Missed spend - Yesterday',
             'Latest Hour of Activity',
             'Pacing exclusion']
+        records['Days Remaining'] = pd.to_numeric(records['Days Remaining'])
         records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
         records_pacing=records[['Start Date','End Date','Organization', 'Advertiser Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
         # if pct_treshold is None:
