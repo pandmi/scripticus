@@ -76,9 +76,7 @@ def looker_df(slug, organization_id, organisation_name, advertiser_filter, pct_t
         json_auth = demo.login()
         query_response = demo.run_query_slug(slug, json_auth)
         records_raw = pd.read_csv(StringIO(query_response), parse_dates=True )
-        records = records_raw[['Organization Name','Agency Name','Advertiser Name','Campaign ID','Campaign Name','Managed Service Flag',
-        'Local Start Date','Local End Date','Days Remaining','Currency Code','Total Budget (Local)','Budget Remaining (Local)','Spend Yesterday (Local)',
-        'Pacing Ratio',	'Spend To Pace (Local)','Projected Total Spend (Local) - Real Time','Missed Spend (Local) - Yesterday', 'Yesterday -  Hour of Day']]
+        records = records_raw[['Organization Name','Agency Name','Advertiser Name','Campaign ID','Campaign Name','Managed Service Flag','Local Start Date','Local End Date','Days Remaining','Currency Code','Total Budget (Local)','Budget Remaining (Local)','Spend Yesterday (Local)','Pacing Ratio','Spend To Pace (Local)','Projected Total Spend (Local) - Real Time','Missed Spend (Local) - Yesterday', 'Yesterday -  Hour of Day']]
         records.columns = ['Organization',
             'Agency',
             'Advertiser Name',
