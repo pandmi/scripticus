@@ -114,7 +114,8 @@ def looker_df_lv(slug, organization_id, organisation_name, creds):
     json_auth = demo.login()
     query_response = demo.run_query_slug(slug, json_auth)
     records = pd.read_csv(StringIO(query_response), parse_dates=True )
-    records.columns = ['Organization',
+    records.columns = ['Account',
+        'Organization',
         'Agency',
         'Advertiser Name',
         'Campaign ID',
@@ -126,13 +127,12 @@ def looker_df_lv(slug, organization_id, organisation_name, creds):
         'Currency',
         'Total Budget',
         'Budget Remaining',
-        'Spend Yesterday',
         'Pacing Ratio',
         'Spend To Pace',
-        'Projected Spend - real time',
+        'Spend Yesterday',
         'Missed spend - Yesterday',
-        'Latest Hour of Activity',
-        'Pacing exclusion']
+        'Projected Spend - real time',
+        'Latest Hour of Activity']
     records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
     records_pacing=records[['Start Date','End Date','Organization', 'Advertiser Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
     if advertiser_filter:
