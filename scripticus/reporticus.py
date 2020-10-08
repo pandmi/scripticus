@@ -115,7 +115,7 @@ class T1_API():
     def pivot(self, df, dimensions, metrics, kpi, sortby, ascending):
         if 'week' in dimensions:
             df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
-            df['week_number'] = df['start_date'].dt.week
+            df['week'] = df['start_date'].dt.week
         if 'start_date' in dimensions:    
             df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
         columns=dimensions+metrics
