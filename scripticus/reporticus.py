@@ -113,28 +113,31 @@ class T1_API():
         return df
 
     def pivot(self, df, dimensions, metrics, kpi, sortby, ascending):
-        if dimensions != None:
-            if (uri != day_part)& (uri != site_transparency):
-                df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
-                df['week_number'] = df['start_date'].dt.week
-            columns=dimensions+metrics
-            df = df[columns].groupby(dimensions, as_index=False).sum()
-            if 'CPM' in kpi:    
-                df['CPM'] = (df.total_spend*1000)/df.impressions
-            if 'CTR' in kpi:  
-                df['CTR'] = df.clicks/df.impressions
-            if 'CPC' in kpi:  
-                df['CPC'] = df.total_spend/df.clicks
-            if 'CPA' in kpi:  
-                df['CPA'] = df.total_spend/df.total_conversions
-            if 'ROI' in kpi:  
-                df['ROI'] = df.revenue/df.total_spend
-            if 'RR' in kpi:  
-                df['RR'] = df.total_conversions/(df.impressions/1000)
-            if 'VR' in kpi:  
-                df['VR'] = df.in_view/measurable
-            df=df.sort_values(by=sortby, ascending=ascending)
-            df.replace([np.inf, -np.inf], np.nan)
+        if 'week' in dimensions:
+            df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
+            df['week_number'] = df['start_date'].dt.week
+        if 'start_date' in dimensions:    
+            df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
+        columns=dimensions+metrics
+        df = df[columns].groupby(dimensions, as_index=False).sum()
+        if 'CPM' in kpi:    
+            df['CPM'] = (df.total_spend*1000)/df.impressions
+        if 'CTR' in kpi:  
+            df['CTR'] = df.clicks/df.impressions
+        if 'CPC' in kpi:  
+            df['CPC'] = df.total_spend/df.clicks
+        if 'CPA' in kpi:  
+            df['CPA'] = df.total_spend/df.total_conversions
+        if 'ROI' in kpi:  
+            df['ROI'] = df.revenue/df.total_spend
+        if 'RR' in kpi:  
+            df['RR'] = df.total_conversions/(df.impressions/1000)
+        if 'VR' in kpi:  
+            df['VR'] = df.in_view/df.measurable
+        if 'ROI' in kpi:  
+            df['ROI'] = df.total_revenue/df.total_spend
+        df=df.sort_values(by=sortby, ascending=ascending)
+        df.replace([np.inf, -np.inf], np.nan)
         else:
             print('Select dimensions for pivot table!')
         return df 
