@@ -118,8 +118,10 @@ class T1_API():
             df['week'] = df['start_date'].dt.week
         if 'start_date' in dimensions:    
             df['start_date'] = pd.to_datetime(df['start_date'].astype(str), format='%Y/%m/%d')
+
+            # data_performance['month'] = data_performance['start_date'].dt.to_period('M')
         columns=dimensions+metrics
-        df = df[columns].groupby(dimensions, as_index=False).sum()
+        df = df[columns].groupby(dimensions, as_index=False).sum().reset_index()
         if 'CPM' in kpi:    
             df['CPM'] = (df.total_spend*1000)/df.impressions
         if 'CTR' in kpi:  
