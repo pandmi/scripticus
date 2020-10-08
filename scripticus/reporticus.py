@@ -122,7 +122,7 @@ class T1_API():
             # data_performance['month'] = data_performance['start_date'].dt.to_period('M')
         columns=dimensions+metrics
         df = df[columns].groupby(dimensions).sum().reset_index()
-        
+
         if 'CPM' in kpi:    
             df['CPM'] = (df.total_spend*1000)/df.impressions
         if 'CTR' in kpi:  
@@ -139,6 +139,8 @@ class T1_API():
             df['VR'] = df.in_view/df.measurable
         if 'ROI' in kpi:  
             df['ROI'] = df.total_revenue/df.total_spend
+        if 'VCR' in kpi:
+            df['VCR'] = df.video_complete/df.video_start
         df=df.sort_values(by=sortby, ascending=ascending)
         df.replace([np.inf, -np.inf], np.nan)
         return df 
