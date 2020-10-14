@@ -69,13 +69,11 @@ class LookerAPI(object):
             return LookerAPI.run_query(self, qid, json_auth)
         except requests.exceptions.RequestException as e:
             logger.error(e)
-
-
 def looker_df(slug, organization_id, organisation_name, advertiser_filter, pct_treshold, up_treshold, creds):
         demo = LookerAPI(creds) 
         json_auth = demo.login()
         query_response = demo.run_query_slug(slug, json_auth)
-        records = pd.read_csv(StringIO(query_response), parse_dates=True )
+        records = pd.read_csv(StringIO(query_response), parse_dates=True)
         records.columns = ['Account',
         'Organization',
         'Agency',
