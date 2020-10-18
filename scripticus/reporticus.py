@@ -17,7 +17,10 @@ import os
 import time
 import qds_sdk
 import sqlalchemy
-from qds_sdk.commands import *
+import qds_sdk
+from qds_sdk.qubole import Qubole
+from qds_sdk.commands import Command
+from qds_sdk.commands import HiveCommand
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 from matplotlib.text import Text
 import datetime
@@ -26,6 +29,7 @@ from pathlib import Path
 from lxml import etree
 import io
 from datetime import datetime, date, timedelta
+import re
 # import warnings
 # warnings.filterwarnings('ignore')
 
@@ -145,4 +149,25 @@ class T1_API():
         df.replace([np.inf, -np.inf], np.nan)
         return df 
 
+def find_replace_multi(string, dictionary):
+    for item in dictionary.keys():
+        string = re.sub(item, dictionary[item], string)
+    return string
+
+def qubole(api_token,sql,replacements):
+    Qubole.configure(api_token=api_token)
+    with open(sql,'r') as f:
+        query = f.read()
+
+    query = find_replace_multi(query,replacements)
+    hc = HiveCommand.run(query=query)
+    cmd = Command.find(hc.id)
+    # out_file_campaigns = 'pathway_results_campaigns.csv'
+       
+    with open(out_file_campaigns, 'wb') as writer:
+        cmd.get_results(writer, delim='\t', inline=False)
+
+    df = pd.read_csv(out_file_campaigns, delimiter='\t')
+
+    return df
 
