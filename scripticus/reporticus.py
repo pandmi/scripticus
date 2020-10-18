@@ -154,7 +154,7 @@ def find_replace_multi(string, dictionary):
         string = re.sub(item, dictionary[item], string)
     return string
 
-def qubole(api_token,sql,replacements):
+def qubole(api_token,sql,replacements,filename):
     Qubole.configure(api_token=api_token)
     with open(sql,'r') as f:
         query = f.read()
@@ -162,7 +162,7 @@ def qubole(api_token,sql,replacements):
     query = find_replace_multi(query,replacements)
     hc = HiveCommand.run(query=query)
     cmd = Command.find(hc.id)
-    out_file = 'qubole_results.csv'
+    out_file = filename + '.csv'
     
     with open(out_file, 'wb') as writer:
         cmd.get_results(writer, delim='\t', inline=False)
