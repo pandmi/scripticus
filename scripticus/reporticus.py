@@ -162,12 +162,12 @@ def qubole(api_token,sql,replacements):
     query = find_replace_multi(query,replacements)
     hc = HiveCommand.run(query=query)
     cmd = Command.find(hc.id)
-    # out_file_campaigns = 'pathway_results_campaigns.csv'
+    # out_file = 'pathway_results_campaigns.csv'
        
-    with open(out_file_campaigns, 'wb') as writer:
+    with open(out_file, 'wb') as writer:
         cmd.get_results(writer, delim='\t', inline=False)
 
-    df = pd.read_csv(out_file_campaigns, delimiter='\t')
+    df = pd.read_csv(out_file, delimiter='\t')
 
     return df
 
