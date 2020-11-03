@@ -135,6 +135,8 @@ class T1_API():
             df['CPC'] = df.total_spend/df.clicks
         if 'CPA' in kpi:  
             df['CPA'] = df.total_spend/df.total_conversions
+        if 'CPA_pc' in kpi:  
+            df['CPA_pc'] = df.total_spend/df.post_click_conversions
         if 'RR' in kpi:  
             df['RR'] = df.total_conversions/(df.impressions/1000)
         if 'VR' in kpi:  
