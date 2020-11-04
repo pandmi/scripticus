@@ -178,6 +178,16 @@ class T1_API():
         self.response = self.session.get(url, data=payload, headers=headers)
         print(json.loads(self.response.content))
 
+    def all_creative_concepts(self,advertiser_id):
+        url = "https://api.mediamath.com/api/v2.0/concepts"
+        payload = "advertiser_id={advertiser_id}".format(
+        advertiser_id=advertiser_id)
+        headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
+        self.response = self.session.get(url,data=payload,headers=headers)
+        r = json.loads(self.response.content)
+        # new_list_id = r['data']['id']
+        return r
+
 
 def filter_strategy_site_lists(strategy_site_lists,keyword):
     autoblacklists = [i for i in strategy_site_lists if keyword in i['name']]
