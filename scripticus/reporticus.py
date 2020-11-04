@@ -148,6 +148,44 @@ class T1_API():
         df=df.sort_values(by=sortby, ascending=ascending)
         df.replace([np.inf, -np.inf], np.nan)
         return df 
+   
+    def create_site_list(self,organization_id,new_list_name,content,sltype):
+        url = "https://api.mediamath.com/api/v2.0/site_lists/upload"
+        payload = "organization_id={organization_id}&name={new_list_name}&status=on&content={content}&restriction={sltype}}".format(
+        organization_id=organization_id, new_list_name=list_name,content=content,sltype=sltype)
+        headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
+        self.response = self.session.post(url,data=payload,headers=headers)
+        r = json.loads(self.response.content)
+        new_list_id = r['data']['id']
+        return new_list_id
+
+    def assign_list_to_strategy(self,list_id,strategy_id):
+        url = 'https://api.mediamath.com/api/v2.0/strategies/{}/site_lists'.format(strategy_id)
+        payload = 'site_lists.1.id={}&site_lists.1.assigned={}'.format(list_id,'strategy')
+        headers = {
+        'accept': "application/vnd.mediamath.v1+json",
+        'content-type': "application/x-www-form-urlencoded"
+        }
+        self.response = self.session.post(url,data=payload,headers=headers)
+        check_list_assignment(list_id)
+        return response
+    
+    def check_list_assignment(self,list_id):
+        url = "https://api.mediamath.com/api/v2.0/site_lists/{}/assignments".format(list_id)
+        payload = "full=*"
+        headers = {'content-type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/vnd.mediamath.v1+json'}
+        self.response = self.session.get(url, data=payload, headers=headers)
+        print(json.loads(self.response.content))
+
+
+def filter_strategy_site_lists(strategy_site_lists,keyword):
+    autoblacklists = [i for i in strategy_site_lists if keyword in i['name']]
+    if len(autoblacklists) == 0:
+        return None
+    else:
+        return autoblacklists
+
 
 def find_replace_multi(string, dictionary):
     for item in dictionary.keys():
