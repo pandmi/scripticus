@@ -225,3 +225,19 @@ def qubole(api_token,sql,replacements,filename):
 
     return df
 
+def creative_classifier(df,creative,name_in_strategy):
+    df2=df[df['name'].str.contains(creative)]
+    dft = df2[['name', 'id']]
+    df_nc =dft.drop_duplicates(subset=None, keep='first', inplace=False)
+    df_nc['Language'] = df_nc['name'].str.split('_').str[3].str.upper()
+    df_nc['Country'] = df_nc['name'].str.split('_').str[1]
+    df_nc['Vertical'] = df_nc['name'].str.split('_').str[4].replace('DIS', "DESK") 
+    df_nc['Creative'] = name_in_strategy
+    df_nc['Identifier'] = df_nc['name'].str.split('_').str[4]
+    x=df_nc['Country']+'_'+df_nc['Vertical']+'_'+df_nc['Creative'] +'_'+df_nc['Language']
+    y=df_nc['Country']+'_'+df_nc['Vertical']+'_'+df_nc['Creative'] +'_'
+    df_nc['Creative_identifyer']  = np.where(df_nc['Country']=='CH', x, y)
+    df_nc_creatives=df_nc.groupby('Creative_identifyer').agg({'id': list})
+    df_nc_creatives['id'] = ('; '.join(map(str,df_nc_creatives.id))).replace('[', '').replace(']', '')
+    return df_nc_creatives
+
