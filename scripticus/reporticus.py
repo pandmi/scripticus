@@ -188,7 +188,7 @@ class T1_API():
             self.response = self.session.get(url,data=payload,headers=headers)
             r = json.loads(self.response.content)
             concept_metadata_tmp = json_normalize(r['data'])
-            if len(camp_goal_df) == 0:
+            if len(concept_metadata) == 0:
                 concept_metadata = concept_metadata_tmp
             else:
                 concept_metadata = pd.concat([concept_metadata, concept_metadata_tmp])
