@@ -184,8 +184,8 @@ class T1_API():
         headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
         self.response = self.session.get(url,data=payload,headers=headers)
         r = json.loads(self.response.content)
-        new_list_id = r['name']['id']
-        return new_list_id
+        # new_list_id = r['name']['id']
+        return r
 
 
 def filter_strategy_site_lists(strategy_site_lists,keyword):
