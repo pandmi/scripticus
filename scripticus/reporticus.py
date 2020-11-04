@@ -180,13 +180,19 @@ class T1_API():
         print(json.loads(self.response.content))
 
     def all_creative_concepts(self,advertiser_id):
-        url = "https://api.mediamath.com/api/v2.0/concepts/limit/advertiser={}".format(advertiser_id)
-        payload = "full=*"
-        headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
-        self.response = self.session.get(url,data=payload,headers=headers)
-        r = json.loads(self.response.content)
-        df = json_normalize(r['data'])
-        return df
+        concept_metadata = pd.DataFrame()
+        for campaign_id in campaign_ids:
+            url = "https://api.mediamath.com/api/v2.0/concepts/limit/advertiser={}".format(advertiser_id)
+            payload = "full=*"
+            headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
+            self.response = self.session.get(url,data=payload,headers=headers)
+            r = json.loads(self.response.content)
+            concept_metadata_tmp = json_normalize(r['data'])
+            if len(camp_goal_df) == 0:
+                concept_metadata = concept_metadata_tmp
+            else:
+                concept_metadata = pd.concat([concept_metadata, concept_metadata_tmp])
+        return concept_metadata
 
 
 def filter_strategy_site_lists(strategy_site_lists,keyword):
