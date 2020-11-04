@@ -9,6 +9,7 @@ import ipywidgets as widgets
 from ipywidgets import interact, interact_manual
 from IPython.display import display
 import json
+from pandas.io.json import json_normalize
 import http.client
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -184,8 +185,8 @@ class T1_API():
         headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
         self.response = self.session.get(url,data=payload,headers=headers)
         r = json.loads(self.response.content)
-        # new_list_id = r['name']['id']
-        return r
+        df = json_normalize(r['data'])
+        return df
 
 
 def filter_strategy_site_lists(strategy_site_lists,keyword):
