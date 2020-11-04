@@ -152,7 +152,7 @@ class T1_API():
     def create_site_list(self,organization_id,new_list_name,content,sltype):
         url = "https://api.mediamath.com/api/v2.0/site_lists/upload"
         payload = "organization_id={organization_id}&name={new_list_name}&status=on&content={content}&restriction={sltype}}".format(
-        organization_id=organization_id, new_list_name=list_name,content=content,sltype=sltype)
+        organization_id=organization_id, new_list_name=new_list_name,content=content,sltype=sltype)
         headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
         self.response = self.session.post(url,data=payload,headers=headers)
         r = json.loads(self.response.content)
