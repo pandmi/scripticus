@@ -179,9 +179,9 @@ class T1_API():
         self.response = self.session.get(url, data=payload, headers=headers)
         print(json.loads(self.response.content))
 
-    def all_creative_concepts(self,advertiser_id):
+    def all_creative_concepts(self,advertiser_ids):
         concept_metadata = pd.DataFrame()
-        for campaign_id in campaign_ids:
+        for advertiser_id in advertiser_ids:
             url = "https://api.mediamath.com/api/v2.0/concepts/limit/advertiser={}".format(advertiser_id)
             payload = "full=*"
             headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
