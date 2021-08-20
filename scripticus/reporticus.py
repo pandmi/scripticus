@@ -130,12 +130,18 @@ class T1_API():
 
         if 'CPM' in kpi:    
             df['CPM'] = (df.total_spend*1000)/df.impressions
+        if 'CPM_usd' in kpi:    
+            df['CPM_usd'] = (df.total_spend_usd*1000)/df.impressions
         if 'CTR' in kpi:  
             df['CTR'] = df.clicks/df.impressions
         if 'CPC' in kpi:  
             df['CPC'] = df.total_spend/df.clicks
+        if 'CPC_usd' in kpi:  
+            df['CPC_usd'] = df.total_spend_usd/df.clicks
         if 'CPA' in kpi:  
             df['CPA'] = df.total_spend/df.total_conversions
+        if 'CPA_usd' in kpi:  
+            df['CPA_usd'] = df.total_spend_usd/df.total_conversions
         if 'CPA_pc' in kpi:  
             df['CPA_pc'] = df.total_spend/df.post_click_conversions
         if 'RR' in kpi:  
@@ -144,6 +150,10 @@ class T1_API():
             df['VR'] = df.in_view/df.measurable
         if 'ROI' in kpi:  
             df['ROI'] = df.total_revenue/df.total_spend
+        if 'ROI_usd' in kpi:  
+            df['ROI'] = df.total_revenue_usd/df.total_spend_usd
+        if 'SSP_fee_pct' in kpi:  
+            df['SSP_fee_pct'] = df.ssp_technology_fee_usd/df.media_cost_usd
         if 'VCR' in kpi:
             df['VCR'] = df.video_complete/df.video_start
         df=df.sort_values(by=sortby, ascending=ascending)
