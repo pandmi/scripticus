@@ -151,7 +151,7 @@ class T1_API():
         if 'ROI' in kpi:  
             df['ROI'] = df.total_revenue/df.total_spend
         if 'ROI_usd' in kpi:  
-            df['ROI'] = df.total_revenue_usd/df.total_spend_usd
+            df['ROI_usd'] = df.total_revenue_usd/df.total_spend_usd
         if 'SSP_fee_pct' in kpi:  
             df['SSP_fee_pct'] = df.ssp_technology_fee_usd/df.media_cost_usd
         if 'VCR' in kpi:
