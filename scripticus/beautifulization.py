@@ -165,7 +165,8 @@ def table_style(df,color,kpi):
                        'Latest Hour of Activity':'{0:,.0f}','Scheduled End Hour':'{0:,.0f}', 'total_revenue':'{0:,.1f}','NDC':'{0:,.2f}',\
                        'LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}',\
                        'CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPA': '{0:,.1f}','SSP_fee_pct': '{:.2%}','ROI_usd': '{:.2f}',\
-                       'CPA_usd':'{0:,.2f}','CPC_usd':'{0:,.2f}','CPM_usd': '{0:,.1f}'}
+                       'CPA_usd':'{0:,.2f}','CPC_usd':'{0:,.2f}','CPM_usd': '{0:,.1f}', 'total_spend_usd':'{0:,.1f}','total_revenue_usd':'{0:,.1f}',\
+                       'media_cost_usd':'{0:,.1f}','ssp_technology_fee_usd':'{0:,.2f}'}
         stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
         return stdf
 
