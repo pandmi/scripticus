@@ -170,6 +170,23 @@ def table_style(df,color,kpi):
         stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
         return stdf
 
+    
+    
+def table_style_ftd(df,color,kpi):
+        cm = sns.light_palette(color, as_cmap=True)
+        format_dict = {'clickers_mu':'{0:,.0f}','total_conversions':'{0:,.0f}','measurable':'{0:,.0f}','in_view':'{0:,.0f}',\
+                       'VR': '{:.2%}','audience_index_impression':'{0:,.0f}', 'Spend To Pace': '${:.1f}',  'Days Remaining': '{:.0f}', \
+                       'target_accuracy':'{0:,.0%}','audience_index_clicks':'{0:,.0f}','total_spend':'${0:,.1f}', 'bid_rate': '{:,.1f}',\
+                       'win_rate': '{:,.1f}','min_bid_amount_cpm': '${:,.1f}', 'max_bid_amount_cpm': '${:,.1f}','watermark_spend': '{:,.1f}',\
+                       'Latest Hour of Activity':'{0:,.0f}','Scheduled End Hour':'{0:,.0f}', 'total_revenue':'${0:,.1f}','NDC':'{0:,.2f}',\
+                       'LP':'{0:,.0f}', 'CPA_LP':'${0:,.2f}','CPC':'${0:,.2f}','CPA_Signup':'${0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'${0:,.1f}',\
+                       'CPA_DC':'${0:,.1f}','ROI': '{:.2f}','CPM': '${0:,.1f}', 'vCPM': '${0:,.1f}','CPA': '${0:,.1f}','SSP_fee_pct': '{:.2%}','ROI_usd': '{:.2f}',\
+                       'CPA_usd':'${0:,.2f}','CPC_usd':'${0:,.2f}','CPM_usd': '${0:,.1f}', 'total_spend_usd':'${0:,.1f}','total_revenue_usd':'${0:,.1f}',\
+                       'media_cost_usd':'${0:,.1f}','ssp_technology_fee_usd':'{0:,.2f}','FTD CPA':'${0:,.2f}','Registrations CPA':'${0:,.2f}'}
+        stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
+        return stdf
+    
+    
 def up_campaign_table(data_upc):
     format_dict = {'spend_to_pace':'{0:,.1f}','measurable':'{0:,.0f}','in_view':'{0:,.0f}','VR': '{:.2%}','spend_yesterday':'{0:,.1f}','cap_amount':'{0:,.1f}','pacing':'{0:,.2f}','daily_spend':'{0:,.2f}','min_bid':'{0:,.2f}','max_bid':'{0:,.2f}','goal_value':'{0:,.2f}','deal_min':'{0:,.1f}','deal_max':'{0:,.1f}','bid_rate': '{:,.1f}','win_rate': '{:,.1f}','Spend To Pace':'{0:,.1f}', 'latest_hour_of_delivery':'{0:,.0f}','end_hour':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}', 'CPA_NDC':'{0:,.1f}','CPA_DC':'{0:,.1f}','ROI': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPC': '{0:,.1f}','CPA': '{0:,.1f}'}
     tpsps = data_upc.style.format(format_dict).hide_index().\
