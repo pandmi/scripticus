@@ -106,7 +106,8 @@ class T1_API():
             'performance_viewability',
             'site_transparency_viewability',
             'performance_aggregated',
-            'performance_streaming'
+            'performance_streaming',
+            'performance'
             ):
             data_url = picard + endpoint
         elif endpoint == 'deals':
