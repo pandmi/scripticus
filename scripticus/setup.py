@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
   name='scripticus',
-  version='0.1.0',
+  version='1.2.2',
   author='Dmitry Pankov',
   author_email='dpankov@mediamath.com',
   packages=['scripticus'],

@@ -100,7 +100,8 @@ class T1_API():
         data_url = picard + endpoint
         if endpoint == 'transparency': 
             endpoint = 'site_transparency'
-
+        if endpoint == 'performance_uniques': 
+            data_url = 'https://api.mediamath.com/reporting/v1/std/performance' 
         if  endpoint in (
             'performance_usd',
             'performance_viewability',
@@ -171,24 +172,24 @@ class T1_API():
         new_list_id = r['data']['id']
         return new_list_id
 
-    def assign_list_to_strategy(self,list_id,strategy_id):
-        url = 'https://api.mediamath.com/api/v2.0/strategies/{}/site_lists'.format(strategy_id)
-        payload = 'site_lists.1.id={}&site_lists.1.assigned={}'.format(list_id,'strategy')
-        headers = {
-        'accept': "application/vnd.mediamath.v1+json",
-        'content-type': "application/x-www-form-urlencoded"
-        }
-        self.response = self.session.post(url,data=payload,headers=headers)
-        check_list_assignment(list_id)
-        return response
+    # def assign_list_to_strategy(self,list_id,strategy_id):
+    #     url = 'https://api.mediamath.com/api/v2.0/strategies/{}/site_lists'.format(strategy_id)
+    #     payload = 'site_lists.1.id={}&site_lists.1.assigned={}'.format(list_id,'strategy')
+    #     headers = {
+    #     'accept': "application/vnd.mediamath.v1+json",
+    #     'content-type': "application/x-www-form-urlencoded"
+    #     }
+    #     self.response = self.session.post(url,data=payload,headers=headers)
+    #     check_list_assignment(list_id)
+    #     return response
     
-    def check_list_assignment(self,list_id):
-        url = "https://api.mediamath.com/api/v2.0/site_lists/{}/assignments".format(list_id)
-        payload = "full=*"
-        headers = {'content-type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/vnd.mediamath.v1+json'}
-        self.response = self.session.get(url, data=payload, headers=headers)
-        print(json.loads(self.response.content))
+    # def check_list_assignment(self,list_id):
+    #     url = "https://api.mediamath.com/api/v2.0/site_lists/{}/assignments".format(list_id)
+    #     payload = "full=*"
+    #     headers = {'content-type': 'application/x-www-form-urlencoded',
+    #             'Accept': 'application/vnd.mediamath.v1+json'}
+    #     self.response = self.session.get(url, data=payload, headers=headers)
+    #     print(json.loads(self.response.content))
 
     def all_creative_concepts(self,advertiser_ids):
         concept_metadata = pd.DataFrame()
