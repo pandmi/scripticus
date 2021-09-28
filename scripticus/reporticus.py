@@ -101,7 +101,7 @@ class T1_API():
         if endpoint == 'transparency': 
             endpoint = 'site_transparency'
         if endpoint == 'performance_uniques': 
-            data_url = 'https://api.mediamath.com/reporting/v1/std/performance' 
+            data_url = 'https://t1.mediamath.com/reporting/v1/std/performance' 
         if  endpoint in (
             'performance_usd',
             'performance_viewability',
