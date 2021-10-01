@@ -4,7 +4,7 @@ setup(
   name='scripticus',
   version='1.2.2',
   author='Dmitry Pankov',
-  author_email='dpankov@mediamath.com',
+  author_email='dp@pandmi.com',
   packages=['scripticus'],
   scripts=['scripticus/beautifulization','scripticus/looker_api','scripticus/mailicus','scripticus/t1_api'],
   url='https://github.com/pandmi/scripticus/',
