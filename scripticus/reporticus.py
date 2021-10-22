@@ -224,9 +224,10 @@ def qubole(api_token,sql,replacements,filename):
     Qubole.configure(api_token=api_token)
     with open(sql,'r') as f:
         query = f.read()
-
+        
+    label='Analytics-hive'
     query = find_replace_multi(query,replacements)
-    hc = HiveCommand.run(query=query)
+    hc = HiveCommand.run(query=query, label=label)
     cmd = Command.find(hc.id)
     out_file = filename + '.csv'
     
