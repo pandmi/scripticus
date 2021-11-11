@@ -657,6 +657,16 @@ class T1_API():
         camp_underpacing_final["cap_amount"] = pd.to_numeric(camp_underpacing_final["cap_amount"])
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
         return camp_underpacing_final, campaign_active_ids
+    
+    def underpacing_campaigns_t1(self, campaign_ids):
+        camp_pacing_medicine, campaign_active_ids = self.campaign_meta_data(campaign_ids)
+        camp_underpacing_final = camp_pacing_medicine[['campaign_id','campaign_name','campaign_spend_cap_automatic', 'campaign_spend_cap_type',
+                                            'campaign_spend_cap_amount','campaign_frequency_type','campaign_frequency_interval','campaign_frequency_amount']].rename(columns={'campaign_spend_cap_type':'spend_cap_type','campaign_spend_cap_amount':'cap_amount','campaign_frequency_type':'frequency_type',
+                                                                                'campaign_frequency_interval':'frequency_interval', 'campaign_frequency_amount':'frequency_amount' })                                                                               
+        camp_underpacing_final["frequency_amount"] = pd.to_numeric(camp_underpacing_final["frequency_amount"])
+        camp_underpacing_final["cap_amount"] = pd.to_numeric(camp_underpacing_final["cap_amount"])
+        camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
+        return camp_underpacing_final, campaign_active_ids
 
     def underpacing_strategies(self, campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
