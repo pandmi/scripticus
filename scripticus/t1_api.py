@@ -41,7 +41,10 @@ def t1_api_login(username,password,client_id,client_secret):
                                     headers={'Accept': 'application/vnd.mediamath.v1+json',
                                             'Authorization': 'Bearer {}'.format(response.json()['access_token'])
                                             })
-    return resp
+
+    s = requests.session()
+    s.headers.update({'Accept': 'application/vnd.mediamath.v1+json','Authorization': 'Bearer {}'.format(response.json()['access_token'])})
+    return resp, s
 
 
 class T1_API():
@@ -51,7 +54,7 @@ class T1_API():
         self.password=password
         self.client_id=client_id
         self.client_secret=client_secret
-        self.resp = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
+        self.resp, self.session = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
 
     def t1_report(self,endpoint,*args,**kwargs): 
     # defining parameters
@@ -86,7 +89,7 @@ class T1_API():
         elif endpoint == 'deals':
             data_url = 'https://api.mediamath.com/reporting-beta/v1/std/deals' 
         
-        self.response = self.resp.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
+        self.response = self.session.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
         data = self.response.content
         df = pd.read_csv(BytesIO(data))
         return df
