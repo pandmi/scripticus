@@ -2,12 +2,14 @@ import requests
 import pandas as pd
 import numpy as np
 from io import StringIO
+from io import BytesIO
 import io as stringIOModule
 import os
 import ipywidgets as widgets
 from ipywidgets import interact, interact_manual
 from IPython.display import display
 import json
+from pandas.io.json import json_normalize
 import http.client
 import seaborn as sns
 import matplotlib.pyplot as plt
