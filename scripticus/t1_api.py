@@ -52,6 +52,44 @@ class T1_API():
         self.client_id=client_id
         self.client_secret=client_secret
         self.resp = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
+
+    def t1_report(self,endpoint,*args,**kwargs): 
+    # defining parameters
+        params = {}
+        for k in args:
+            for v in k:
+                if type(k[v]) is list:
+                    params[v] = ','.join(k[v])
+                else:
+                    params[v] = k[v]
+        for k in kwargs:
+            if type(k) is list:
+                params[k] = ','.join(kwargs[k])
+            else:
+                params[k] = kwargs[k]
+    # creating a call
+        picard = 'https://api.mediamath.com/reporting/v1/std/'
+        data_url = picard + endpoint
+        if endpoint == 'transparency': 
+            endpoint = 'site_transparency'
+        if endpoint == 'performance_uniques': 
+            data_url = 'https://t1.mediamath.com/reporting/v1/std/performance' 
+        if  endpoint in (
+            'performance_usd',
+            'performance_viewability',
+            'site_transparency_viewability',
+            'performance_aggregated',
+            'performance_streaming',
+            'performance'
+            ):
+            data_url = picard + endpoint
+        elif endpoint == 'deals':
+            data_url = 'https://api.mediamath.com/reporting-beta/v1/std/deals' 
+        
+        self.response = self.session.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
+        data = self.response.content
+        df = pd.read_csv(BytesIO(data))
+        return df
      
 
 
@@ -400,21 +438,21 @@ class T1_API():
         return camp_goal_df, camp_goal_id_df
 
 
-    def strategy_two_days_performance(self, campaign_ids):
+    def strategy_two_days_performance(self,campaign_ids):
+        dimensions='campaign_id,strategy_id'
+        metrics='impressions,clicks,total_conversions,total_spend'
         dt_today = date.today()
         dt = date.today() - timedelta(1)
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
         camp_perf_df = pd.DataFrame()
-        data = self.resp.json()
-        sessionid=data['data']['session']['sessionid']
-        conn = http.client.HTTPSConnection("api.mediamath.com")
-        headers = { 'cookie': 'adama_session='+sessionid}
-        
+                
         for campaign_id in campaign_ids:
-            url_perf='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,strategy_id&filter=campaign_id={}&metrics=impressions,clicks,total_conversions,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-            conn.request("GET", url_perf, headers=headers)
-            camp_perf_df_tmp= pd.read_csv(conn.getresponse())
+            
+            camp_perf_df_tmp= self.t1_report(endpoint='performance', dimensions=dimensions,
+                         filter='campaign_id='+str(campaign_id),
+                         metrics=metrics,
+                         precision='4',time_rollup='by_day',order='date',start_date=start_date,end_date=end_date)
     
             if len(camp_perf_df) == 0:
                 camp_perf_df = camp_perf_df_tmp
@@ -813,6 +851,298 @@ class T1_API():
         strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] < 0.05)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
+
+    def strategy_meta_data_id(self, strategy_ids):
+        st_metadata = pd.DataFrame()
+        for strategy_id in strategy_ids:
+            version_data = []
+            url_page = 'https://api.mediamath.com/api/v2.0/strategies/{}'.format(strategy_id)
+            strats_data = requests.get(url_page, cookies = self.resp.cookies).text
+            st = etree.parse(io.StringIO(strats_data))
+            ca_id = int(st.xpath('''.//prop[@name = 'campaign_id']/@value''')[0])
+            ca_name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
+            # st_id = int(st.attrib['id'])
+            # st_name = st.attrib['name']
+
+            st_id  = int(st.xpath('''.//entity[@type = 'strategy']/@id''')[0])
+            st_name  = st.xpath('''.//entity[@type = 'strategy']/@name''')[0]
+
+
+            st_version = int(st.xpath('''.//entity[@type = 'strategy']/@version''')[0])
+            st_status = int(st.xpath('''.//prop[@name = 'status']/@value''')[0])
+            try:
+                st_budget = float(st.xpath('''.//prop[@name = 'budget']/@value''')[0])
+            except:
+                st_budget = 0
+            st_pacing_type = st.xpath('''.//prop[@name = 'pacing_type']/@value''')[0]
+            try:
+                st_freq_amt = int(st.xpath('''.//prop[@name = 'frequency_amount']/@value''')[0])
+            except:
+                st_freq_amt = 0
+            st_pacing_amt = float(st.xpath('''.//prop[@name = 'pacing_amount']/@value''')[0])
+            st_pacing_interval = st.xpath('''.//prop[@name = 'pacing_interval']/@value''')[0]
+            try:
+                st_goal_type = st.xpath('''.//prop[@name = 'goal_type']/@value''')[0]
+            except:
+                st_goal_type = 0
+            try:
+                st_goal_value = float(st.xpath('''.//prop[@name = 'goal_value']/@value''')[0])
+            except:
+                st_goal_value = 0
+            try:
+                st_bid_aggressiveness = float(st.xpath('''.//prop[@name = 'bid_aggressiveness']/@value''')[0])
+            except:
+                st_bid_aggressiveness = 0
+            try:
+                st_updated_on = st.xpath('''.//prop[@name = 'updated_on']/@value''')[0]
+            except:
+                st_updated_on = 0
+            try:
+                st_max_bid = float(st.xpath('''.//prop[@name = 'max_bid']/@value''')[0])
+            except:
+                st_max_bid = 0
+            try:
+                st_min_bid = float(st.xpath('''.//prop[@name = 'min_bid']/@value''')[0])
+            except:
+                st_min_bid  = 0
+            try:
+                st_effective_goal_value = float(st.xpath('''.//prop[@name = 'effective_goal_value']/@value''')[0])
+            except:
+                st_effective_goal_value = 0
+            try:
+                st_pixel_target_expr = st.xpath('''.//prop[@name = 'pixel_target_expr']/@value''')[0]
+            except:
+                st_pixel_target_expr = 0
+            try:
+                st_frequency_type= st.xpath('''.//prop[@name = 'frequency_type']/@value''')[0]
+            except:
+                st_frequency_type = 0
+            try:
+                st_frequency_interval= st.xpath('''.//prop[@name = 'frequency_interval']/@value''')[0]
+            except:
+                st_frequency_interval = 0
+            try:
+                st_description = st.xpath('''.//prop[@name = 'description']/@value''')[0]
+            except:
+                st_description = 0
+            try:
+                st_bid_price_is_media_only= int(st.xpath('''.//prop[@name = 'bid_price_is_media_only']/@value''')[0])
+            except:
+                st_bid_price_is_media_only = 0
+            try:
+                st_exchange_type_for_run_on_all = st.xpath('''.//prop[@name = 'exchange_type_for_run_on_all']/@value''')[0]
+            except:
+                st_exchange_type_for_run_on_all = 0
+            try:
+                st_site_restriction_transparent_urls = st.xpath('''.//prop[@name = 'site_restriction_transparent_urls']/@value''')[0]
+            except:
+                st_site_restriction_transparent_urls = 0           
+            try:
+                st_audience_segment_include_op = st.xpath('''.//prop[@name = 'audience_segment_include_op']/@value''')[0]
+            except:
+                st_audience_segment_include_op = 0
+            try:
+                st_targeting_segment_include_op = st.xpath('''.//prop[@name = 'targeting_segment_include_op']/@value''')[0]
+            except:
+                st_targeting_segment_include_op = 0
+            try:
+                st_pixel_target_expr = st.xpath('''.//prop[@name = 'pixel_target_expr']/@value''')[0]
+            except:
+                st_pixel_target_expr = 0
+            try:
+                st_run_on_all_pmp = int(st.xpath('''.//prop[@name = 'run_on_all_pmp']/@value''')[0])
+            except:
+                st_run_on_all_pmp  = 0
+            try:
+                st_run_on_display = int(st.xpath('''.//prop[@name = 'run_on_display']/@value''')[0])
+            except:
+                st_run_on_display  = 0
+            try:
+                st_run_on_mobile = int(st.xpath('''.//prop[@name = 'run_on_mobile']/@value''')[0])
+            except:
+                st_run_on_mobile = 0
+
+            version_data_tmp = [ca_id,
+                                ca_name,
+                                st_id,
+                                st_name,
+                                st_version,
+                                st_status,
+                                st_budget,
+                                st_pacing_type,
+                                st_freq_amt,
+                                st_pacing_amt,
+                                st_pacing_interval,
+                                st_goal_type,
+                                st_goal_value,
+                                st_bid_aggressiveness,
+                                st_updated_on,
+                                st_max_bid,
+                                st_min_bid,
+                                st_effective_goal_value,
+                                st_pixel_target_expr,
+                                st_frequency_type,
+                                st_frequency_interval,
+                                st_description,
+                                st_bid_price_is_media_only,
+                                st_exchange_type_for_run_on_all, st_site_restriction_transparent_urls,st_audience_segment_include_op, 
+                                st_targeting_segment_include_op, st_pixel_target_expr, st_run_on_all_pmp, st_run_on_display,st_run_on_mobile]
+            
+
+            version_data.append(version_data_tmp)  
+            st_metadata_tmp = pd.DataFrame(version_data, columns = ['campaign_id',
+                                                                    'campaign_name',
+                                                                    'strategy_id',
+                                                                    'strategy_name',
+                                                                    'strategy_version',
+                                                                    'strategy_status',
+                                                                    'strategy_budget',
+                                                                    'pacing_type',
+                                                                    'frequency_amount',
+                                                                    'pacing_amount',
+                                                                    'pacing_interval',
+                                                                    'goal_type',
+                                                                    'goal_value',
+                                                                    'bid_aggressiveness',
+                                                                    'updated_on',
+                                                                    'max_bid',
+                                                                    'min_bid',
+                                                                    'effective_goal_value',
+                                                                    'pixel_target_expr',
+                                                                    'frequency_type',
+                                                                    'frequency_interval',
+                                                                    'description',
+                                                                    'bid_price_is_media_only',
+                                                                    'exchange_type_for_run_on_all', 'restriction_transparent_urls','audience_include_op', 'cntx_include_op',
+                                                                    'pixel_target', 'on_all_pmp', 'on_display', 'on_mobile'])
+            
+            if len(st_metadata) == 0:
+                st_metadata = st_metadata_tmp
+            else:
+                st_metadata = pd.concat([st_metadata, st_metadata_tmp])
+                      
+        st_metadata_fin = st_metadata[(st_metadata['strategy_status'] == 1)]
+        strategy_ids=st_metadata_fin['strategy_id'].values
+        st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name',  'frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only']]
+        return st_metadata_final
+
+
+    def strategy_two_days_performance_id(self,strategy_ids):
+        dimensions='campaign_id,strategy_id'
+        metrics='impressions,clicks,total_conversions,total_spend'
+        dt_today = date.today()
+        dt = date.today() - timedelta(1)
+        start_date = dt.strftime('%Y-%m-%d')
+        end_date = dt.strftime('%Y-%m-%d')
+        camp_perf_df = pd.DataFrame()
+                
+        for strategy_id in strategy_ids:
+            
+            camp_perf_df_tmp= self.t1_report(endpoint='performance', dimensions=dimensions,
+                         filter='strategy_id='+str(strategy_id),
+                         metrics=metrics,
+                         precision='4',time_rollup='by_day',order='date',start_date=start_date,end_date=end_date)
+    
+            if len(camp_perf_df) == 0:
+                camp_perf_df = camp_perf_df_tmp
+            else:
+                camp_perf_df = pd.concat([camp_perf_df, camp_perf_df_tmp])
+        return camp_perf_df
+
+    def winlos_report_id(self,strategy_ids):
+        dimensions='organization_name,agency_name,advertiser_name,campaign_id,campaign_start_date,campaign_end_date,campaign_budget,strategy_id'
+        metrics='average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins'
+        dt = date.today() - timedelta(1)
+        start_date = dt.strftime('%Y-%m-%d')
+        end_date = dt.strftime('%Y-%m-%d')
+        win_los_df = pd.DataFrame()
+      
+        for strategy_id in strategy_ids:
+            win_los_df_tmp= self.t1_report(endpoint='win_loss', dimensions=dimensions,
+                         filter='strategy_id='+str(strategy_id),
+                         metrics=metrics,
+                         precision='4',time_rollup='all',order='date',start_date=start_date,end_date=end_date)
+            
+            if len(win_los_df) == 0:
+                win_los_df = win_los_df_tmp
+            else:
+                win_los_df = pd.concat([win_los_df, win_los_df_tmp])
+        return win_los_df
+
+
+    def underpacing_strategies_id(self, strategy_ids):
+        strategy_ids, st_metadata_final = self.strategy_meta_data_id(strategy_ids)
+        df_deals = self.get_deals(strategy_ids)
+        if len(df_deals) !=0:
+            # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
+            df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
+            df_deals = df_deals.rename(columns = {'name' : 'deal_name',
+                                                'deal_identifier' : 'deal_external_id',
+                                                'id' : 'deal_id',
+                                                'status' : 'deal_status',
+                                                'price.value' : 'deal_floor_price',
+                                                'created_on' : 'deal_creation_date'
+                                                })
+
+            df_deals = df_deals.sort_values('deal_name')
+            df_deals_fin = df_deals[(df_deals['deal_status'] == True)]
+        else:
+            df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
+            df_deals_fin = df_deals
+        df_dg_raw  = self.get_deal_groups(strategy_ids)
+        if len(df_dg_raw) !=0:
+            df_dg_data = []
+            df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
+            for index, row in df_dg_raw.iterrows():
+                for deal in row['deal_ids']:
+                    r = [deal, row['id'], row['name'], row['status']]
+                    df_dg_data.append(r)
+            df_dg = pd.DataFrame(data=df_dg_data, columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
+            df_dg = df_dg[(df_dg['deal_group_status'] == True)]
+        else:
+            df_dg = pd.DataFrame(columns=['deal_id','deal_group_id', 'deal_group_name', 'deal_group_status'])
+       
+
+        str_deal_metadata = self.str_deal_metadata(strategy_ids)       
+        str_deal_group_metadata = self.str_deal_group_metadata(strategy_ids)
+        # 3.3. Combining all deals assigned to strategy
+        str_dg_deal_metadata = pd.merge(str_deal_group_metadata, df_dg,  how='left', on=['deal_group_id'])
+        str_dg_deal_metadata = str_dg_deal_metadata[['strategy_id','deal_id']]
+        str_all_deals_metadata = pd.concat([str_dg_deal_metadata, str_deal_metadata])
+        # 3.4. Getting deal price info
+        str_deals = pd.merge(str_all_deals_metadata, df_deals_fin, how='left', left_on='deal_id', right_on='deal_id')
+        str_deals['deal_floor_price'] = str_deals['deal_floor_price'].astype(float)
+        str_deals_final = str_deals.groupby(['strategy_id']).agg({'deal_floor_price': ['mean', 'min', 'max']})
+        str_deals_final.columns = ['deal_mean_price', 'deal_min_price', 'deal_max_price']
+        str_deals_final = str_deals_final.reset_index()
+        str_setup_overview = pd.merge(st_metadata_final, str_deals_final,  how='left', on=['strategy_id'])
+        camp_perf_df = self.strategy_two_days_performance_id(strategy_ids)
+        win_los_df = self.winlos_report_id(strategy_ids)
+        # Final agregation
+        str_correction = pd.merge(str_setup_overview, win_los_df ,  how='left', on=['campaign_id','strategy_id'])
+        str_correction_perf = pd.merge(str_correction, camp_perf_df,  how='left', on=['campaign_id','strategy_id'])
+        str_correction_final =  str_correction_perf[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name',
+            'frequency_type', 'frequency_amount', 'pacing_type', 'pacing_amount','total_spend',
+            'min_bid', 'max_bid', 'goal_type', 'goal_value',
+            'deal_mean_price', 'deal_min_price',
+            'deal_max_price', 'bid_rate', 'win_rate']]
+        str_correction_final.columns = ['camp_id', 'campaign_name', 'strategy_id', 'strategy_name',
+            'f_type', 'f_amount', 'pacing_type', 'pacing', 'daily_spend',
+            'min_bid', 'max_bid', 'goal', 'goal_value',
+            'deal_mean', 'deal_min',
+            'deal_max', 'bid_rate', 'win_rate']
+        # str_correction = pd.merge(str_outpacing_fin_30, win_los_df, how='left', left_on='strategy_id', right_on='strategy_id')
+        strategy_underpacing = str_correction_final.replace(np.nan,0)
+        strategy_underpacing["min_bid"] = pd.to_numeric(strategy_underpacing["min_bid"])
+        strategy_underpacing["deal_max"] = pd.to_numeric(strategy_underpacing["deal_max"])
+        strategy_underpacing["max_bid"] = pd.to_numeric(strategy_underpacing["max_bid"])
+        strategy_underpacing['goal_value'] = pd.to_numeric(strategy_underpacing['goal_value'])
+        strategy_underpacing['daily_spend'] = pd.to_numeric(strategy_underpacing['daily_spend'])
+        strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
+        strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] < 0.05)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
+        strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
+        return strategy_underpacing, strategy_tr_ids, strategy_ids
+
     
 
    
