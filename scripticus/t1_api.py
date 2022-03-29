@@ -1146,8 +1146,7 @@ class T1_API():
         strategy_underpacing['win_rate'] = pd.to_numeric(strategy_underpacing['win_rate'])
         strategy_troubleshooting = strategy_underpacing[(strategy_underpacing['daily_spend'] < 0.05)&(strategy_underpacing['min_bid'] >= strategy_underpacing['deal_max'] )]
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
-        return strategy_underpacing, strategy_tr_ids, strategy_ids
-
+        return strategy_underpacing
     
 
    
