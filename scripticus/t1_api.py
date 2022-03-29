@@ -86,7 +86,7 @@ class T1_API():
         elif endpoint == 'deals':
             data_url = 'https://api.mediamath.com/reporting-beta/v1/std/deals' 
         
-        self.response = self.session.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
+        self.response = self.resp.get(data_url, params=params, headers={'Accept-Encoding':'identity','Connection':'close'})
         data = self.response.content
         df = pd.read_csv(BytesIO(data))
         return df
