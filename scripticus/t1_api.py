@@ -466,24 +466,25 @@ class T1_API():
         return camp_perf_df
 
     def winlos_report(self, campaign_ids):
+        dimensions='organization_name,agency_name,advertiser_name,campaign_id,campaign_start_date,campaign_end_date,campaign_budget,strategy_id'
+        metrics='average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins'
         dt = date.today() - timedelta(1)
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
         win_los_df = pd.DataFrame()
-        data = self.resp.json()
-        sessionid=data['data']['session']['sessionid']
-        conn = http.client.HTTPSConnection("api.mediamath.com")
-        headers = { 'cookie': 'adama_session='+sessionid}
-        
+      
         for campaign_id in campaign_ids:
-            url_winlos='https://api.mediamath.com/reporting/v1/std/win_loss?dimensions=organization_name,agency_name,advertiser_name,campaign_id,campaign_start_date,campaign_end_date,campaign_budget,strategy_id&filter=campaign_id={}&metrics=average_bid_amount_cpm,average_win_amount_cpm,bid_rate,bids,matched_bid_opportunities,max_bid_amount_cpm,max_win_amount_cpm,min_bid_amount_cpm,min_win_amount_cpm,total_bid_amount_cpm,total_win_amount_cpm,win_rate,wins&precision=2&time_rollup=all&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-            conn.request("GET", url_winlos, headers=headers)
-            win_los_df_tmp= pd.read_csv(conn.getresponse())
+            win_los_df_tmp= self.t1_report(endpoint='win_loss', dimensions=dimensions,
+                         filter='campaign_id='+str(campaign_id),
+                         metrics=metrics,
+                         precision='4',time_rollup='all',order='date',start_date=start_date,end_date=end_date)
+            
             if len(win_los_df) == 0:
                 win_los_df = win_los_df_tmp
             else:
                 win_los_df = pd.concat([win_los_df, win_los_df_tmp])
         return win_los_df
+
 
     def winlos_report_mtd(self, campaign_ids):
         dt = date.today() - timedelta(1)
