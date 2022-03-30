@@ -11,7 +11,7 @@ def bidder_strategy_target(strategy_ids, bidder_number, bidder_location, sec):
         if count % 10 == 0: 
             bidder_number += 1
                          
-        url_bidder_sts = 'http://{}-bidder-x{}.mediamath.com:8081/strategy_target?op=option&strategy={}&max_recs=&max_runtime=&stop=&fmt=json'.format(bidder_location,bidder_number, strategy_id)
+        url_bidder_sts = 'http://{}-bidder-x{}.mediamath.com:8081/strategy_target?op=option&strategy={}&max_recs=&max_runtime=1500&stop=&fmt=json'.format(bidder_location,bidder_number, strategy_id)
         
         data_start = urllib.request.urlopen(url_bidder_sts).read()
         output_start = json.loads(data_start)
