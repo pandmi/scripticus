@@ -1028,6 +1028,7 @@ class T1_API():
                       
         st_metadata_fin = st_metadata[(st_metadata['strategy_status'] == 1)]
         strategy_ids=st_metadata_fin['strategy_id'].values
+        st_metadata_fin['campaign_name'] = st_metadata_fin['campaign_name'].str.split('_').str[0]
         st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name',  'frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only']]
         return st_metadata_final
 
@@ -1131,7 +1132,7 @@ class T1_API():
             'min_bid', 'max_bid', 'goal_type', 'goal_value',
             'deal_mean_price', 'deal_min_price',
             'deal_max_price', 'bid_rate', 'win_rate']]
-        str_correction_final.columns = ['camp_id', 'campaign_name', 'strategy_id', 'strategy_name',
+        str_correction_final.columns = ['camp_id', 'geo', 'strategy_id', 'strategy_name',
             'f_type', 'f_amount', 'pacing_type', 'pacing', 'daily_spend',
             'min_bid', 'max_bid', 'goal', 'goal_value',
             'deal_mean', 'deal_min',
