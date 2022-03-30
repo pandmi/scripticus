@@ -419,22 +419,21 @@ class T1_API():
                 st_daypart = pd.concat([st_daypart, st_daypart_tmp])
         return st_daypart
 
+
     def last_two_days_performance(self, campaign_ids):
+        dimensions='campaign_id,campaign_goal_type,campaign_goal_value'
+        metrics='impressions,clicks,total_spend'
         dt_today = date.today()
         today=dt_today.strftime('%Y-%m-%d')
         dt = date.today() - timedelta(2)
         start_date = dt.strftime('%Y-%m-%d')
         end_date = dt.strftime('%Y-%m-%d')
-        camp_goal_df = pd.DataFrame()
-        data = self.resp.json()
-        sessionid=data['data']['session']['sessionid']
-        conn = http.client.HTTPSConnection("api.mediamath.com")
-        headers = { 'cookie': 'adama_session='+sessionid}
-       
+        camp_goal_df = pd.DataFrame()      
         for campaign_id in campaign_ids:
-            url_devtech_org='https://api.mediamath.com/reporting/v1/std/performance?dimensions=campaign_id,campaign_goal_type,campaign_goal_value&filter=campaign_id={}&metrics=impressions,clicks,total_spend&precision=4&time_rollup=by_day&order=date&start_date={}&end_date={}'.format(campaign_id, start_date, end_date)
-            conn.request("GET", url_devtech_org, headers=headers)
-            camp_goal_df_tmp= pd.read_csv(conn.getresponse())
+            camp_goal_df_tmp= self.t1_report(endpoint='performance', dimensions=dimensions,
+                         filter='campaign_id='+str(campaign_id),
+                         metrics=metrics,
+                         precision='4',time_rollup='by_day',order='date',start_date=start_date,end_date=end_date)
             if len(camp_goal_df) == 0:
                 camp_goal_df = camp_goal_df_tmp
             else:
