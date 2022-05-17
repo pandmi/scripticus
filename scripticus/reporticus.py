@@ -215,28 +215,30 @@ def filter_strategy_site_lists(strategy_site_lists,keyword):
         return autoblacklists
 
 
-def find_replace_multi(string, dictionary):
-    for item in dictionary.keys():
-        string = re.sub(item, dictionary[item], string)
-    return string
-
 def qubole(api_token,sql,replacements,filename):
     Qubole.configure(api_token=api_token)
     with open(sql,'r') as f:
         query = f.read()
         
-    label='Analytics-hive'
+    label='Trading-spark'
     query = find_replace_multi(query,replacements)
     hc = HiveCommand.run(query=query, label=label)
     cmd = Command.find(hc.id)
     out_file = filename + '.csv'
     
     with open(out_file, 'wb') as writer:
-        cmd.get_results(writer, delim='\t', inline=False)
+        cmd.get_results(writer)
 
     df = pd.read_csv(out_file, delimiter='\t')
 
     return df
+
+def find_replace_multi(string, dictionary):
+    for item in dictionary.keys():
+        string = re.sub(item, dictionary[item], string)
+    return string
+
+
 
 def creative_classifier(df,creative,name_in_strategy):
     df2=df[df['name'].str.contains(creative)]
