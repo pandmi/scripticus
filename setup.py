@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="scripticus",
-    version="1.2.20",
+    version="1.2.22",
     author="Dmitry Pankov",
     author_email="dp@pandmi.com",
     description="An absolutly awesome package that does everything!",
