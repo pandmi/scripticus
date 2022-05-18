@@ -237,7 +237,17 @@ def find_replace_multi(string, dictionary):
     for item in dictionary.keys():
         string = re.sub(item, dictionary[item], string)
     return string
+    
+def qubole_by_id(api_token,hcid,filename):
+    Qubole.configure(api_token=api_token)
+    cmd = Command.find(hcid)
+    out_file = filename + '.csv'
+    with open(out_file, 'wb') as writer:
+        cmd.get_results(writer)
 
+    df = pd.read_csv(out_file, delimiter='\t')
+
+    return df
 
 
 def creative_classifier(df,creative,name_in_strategy):
