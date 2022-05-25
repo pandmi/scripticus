@@ -132,7 +132,7 @@ def looker_ag(slug, organization_id, organisation_name, agency_filter, pct_tresh
         'Projected Spend - real time',
         'Latest Hour of Activity']
         records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
-        records_pacing=records[['Start Date','End Date','Organization', 'Agency Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
+        records_pacing=records[['Start Date','End Date','Organization','Advertiser Name','Agency Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
         if agency_filter:
             up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organisation_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Agency Name'].str.contains(agency_filter))].sort_values(by='Value Underpacing', ascending=False)
         else: 
