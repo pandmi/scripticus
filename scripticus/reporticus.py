@@ -199,7 +199,7 @@ class T1_API():
             headers = {'content-type': 'application/x-www-form-urlencoded','Accept': 'application/vnd.mediamath.v1+json'}
             self.response = self.session.get(url,data=payload,headers=headers)
             r = json.loads(self.response.content)
-            concept_metadata_tmp = json_normalize(r['data', 'meta'])
+            concept_metadata_tmp = json_normalize(r[['data', 'meta']])
             if len(concept_metadata) == 0:
                 concept_metadata = concept_metadata_tmp
             else:
