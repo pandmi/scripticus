@@ -260,6 +260,15 @@ def qubole_by_id_nd(api_token,hcid,filename):
 
     return df
 
+def qubole_by_id_raw(api_token,hcid,filename):
+    Qubole.configure(api_token=api_token)
+    cmd = Command.find(hcid)
+    out_file = filename + '.csv'
+    with open(out_file, 'wb') as writer:
+        cmd.get_results(writer)
+
+    return out_file
+
 
 
 def creative_classifier(df,creative,name_in_strategy):
