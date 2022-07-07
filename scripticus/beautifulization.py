@@ -166,7 +166,7 @@ def table_style(df,color,kpi):
                        'LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}','VCR': '{:.0%}','spend_share': '{:.2%}', 'CPA_NDC':'{0:,.1f}',\
                        'CPA_DC':'{0:,.1f}','ROI': '{:.2f}','ROI_segment': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPA': '{0:,.1f}','SSP_fee_pct': '{:.2%}','ROI_usd': '{:.2f}',\
                        'CPA_usd':'{0:,.2f}','CPC_usd':'{0:,.2f}','CPM_usd': '{0:,.1f}', 'total_spend_usd':'{0:,.1f}','total_revenue_usd':'{0:,.1f}',\
-                       'media_cost_usd':'{0:,.1f}','ssp_technology_fee_usd':'{0:,.2f}'}
+                       'media_cost_usd':'{0:,.1f}','ssp_technology_fee_usd':'{0:,.2f}', 'disc_conv_uplift':'{0:,.0%}','disc_order_uplift':'{0:,.0f}','disc_rev_uplift':'{0:,.0f}'}
         stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
         return stdf
 
