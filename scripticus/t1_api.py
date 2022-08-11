@@ -1150,19 +1150,19 @@ class T1_API():
         return strategy_underpacing
 
 # creative assignements    !!!!!
-    def apportion_pcts(pcts, total):
-    proportions = [total * (pct / 100) for pct in pcts]
-    apportions = [math.floor(p) for p in proportions]
-    remainder = total - sum(apportions)
-    remainders = [(i, p - math.floor(p)) for (i, p) in enumerate(proportions)]
-    remainders.sort(key=operator.itemgetter(1), reverse=True)
-    for (i, _) in itertools.cycle(remainders):
-        if remainder == 0:
-            break
-        else:
-            apportions[i] += 1
-            remainder -= 1
-    return apportions
+    # def apportion_pcts(pcts, total):
+    # proportions = [total * (pct / 100) for pct in pcts]
+    # apportions = [math.floor(p) for p in proportions]
+    # remainder = total - sum(apportions)
+    # remainders = [(i, p - math.floor(p)) for (i, p) in enumerate(proportions)]
+    # remainders.sort(key=operator.itemgetter(1), reverse=True)
+    # for (i, _) in itertools.cycle(remainders):
+    #     if remainder == 0:
+    #         break
+    #     else:
+    #         apportions[i] += 1
+    #         remainder -= 1
+    # return apportions
     
     def creative_assignment(self, mode, agency_id): 
         if (mode=='appendandoptimize') or (mode=='optimizationonly'):
