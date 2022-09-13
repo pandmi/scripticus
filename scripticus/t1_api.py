@@ -585,18 +585,16 @@ class T1_API():
                     deals_df = pd.concat([deals_df, deals_df_tmp])
             return deals_df
 
-    def get_deal_groups(self, strategy_ids):
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
+    def get_deal_groups(self, organization_id, strategy_ids):
+            url = "https://api.mediamath.com/deals/v1.0/deal_groups"
+            headers = {"Content-Type": "application/json",'Authorization': 'Bearer {}'.format(self.token)}
             df_dg = pd.DataFrame()
             for strategy_id in strategy_ids:  
                 offset = 0
                 offset_total = 1
                 while offset < offset_total:
-                    url_page = 'https://api.mediamath.com/media/v1.0/deal_groups?strategy_id={}&page_limit=100&page_offset='.format(str(strategy_id)) + str(offset)
-                    deals_data = requests.get(url_page, headers=headers).text
+                    querystring = {"owner.organization_id":organization_id,"strategy_id":strategy_id, "page_offset":offset}
+                    deals_data = requests.request("GET", url, headers=headers, params=querystring).text
                     df_dg_tmp = pd.io.json.json_normalize(json.loads(deals_data)['data'])
                     meta_df = pd.io.json.json_normalize(json.loads(deals_data)['meta'])
                     offset_total = meta_df['total_count'][0]
@@ -729,7 +727,7 @@ class T1_API():
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
             df_deals_fin = df_deals
-        df_dg_raw  = self.get_deal_groups(strategy_ids)
+        df_dg_raw  = self.get_deal_groups(organization_id, strategy_ids)
         if len(df_dg_raw) !=0:
             df_dg_data = []
             df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
@@ -802,7 +800,7 @@ class T1_API():
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
             df_deals_fin = df_deals
-        df_dg_raw  = self.get_deal_groups(strategy_ids)
+        df_dg_raw  = self.get_deal_groups(organization_id,strategy_ids)
         if len(df_dg_raw) !=0:
             df_dg_data = []
             df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
@@ -1094,7 +1092,7 @@ class T1_API():
         else:
             df_deals = pd.DataFrame(columns=['deal_name', 'deal_external_id', 'deal_id', 'deal_status','deal_floor_price','deal_creation_date'])
             df_deals_fin = df_deals
-        df_dg_raw  = self.get_deal_groups(strategy_ids)
+        df_dg_raw  = self.get_deal_groups(organization_id,strategy_ids)
         if len(df_dg_raw) !=0:
             df_dg_data = []
             df_dg_raw = df_dg_raw[['id','name','deal_ids', 'status']]
