@@ -45,8 +45,9 @@ def t1_api_login(username,password,client_id,client_secret):
                                             })
 
     s = requests.session()
+    x=response.json()['access_token']
     s.headers.update({'Accept': 'application/vnd.mediamath.v1+json','Authorization': 'Bearer {}'.format(response.json()['access_token'])})
-    return resp, s
+    return resp, s, x
 
 
 class T1_API():
@@ -56,7 +57,7 @@ class T1_API():
         self.password=password
         self.client_id=client_id
         self.client_secret=client_secret
-        self.resp, self.session = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
+        self.resp, self.session, self.token  = t1_api_login(self.username,self.password, self.client_id,self.client_secret)
 
     def t1_report(self,endpoint,*args,**kwargs): 
     # defining parameters
@@ -564,18 +565,16 @@ class T1_API():
         return crap
        
 
-    def get_deals(self, strategy_ids):
-            data = self.resp.json()
-            sessionid=data['data']['session']['sessionid']
-            conn = http.client.HTTPSConnection("api.mediamath.com")
-            headers = { 'cookie': 'adama_session='+sessionid}
+    def get_deals(self, organization_id, strategy_ids):
+            url = "https://api.mediamath.com/deals/v1.0/deals"
+            headers = {"Content-Type": "application/json",'Authorization': 'Bearer {}'.format(self.token)}
             deals_df = pd.DataFrame()
             for strategy_id in strategy_ids:  
                 offset = 0
                 offset_total = 1
                 while offset < offset_total:
-                    url_page = 'https://api.mediamath.com/deals/v1.0/deals?owner.organization_id=100213&strategy_id={}&page_limit=1000&page_offset='.format(str(strategy_id)) + str(offset)
-                    deals_data = requests.get(url_page, headers=headers).text
+                    querystring = {"owner.organization_id":organization_id,"strategy_id":strategy_id, "page_offset":offset}
+                    deals_data  = requests.request("GET", url, headers=headers, params=querystring).text
                     deals_df_tmp = pd.io.json.json_normalize(json.loads(deals_data)['data'])
                     meta_df = pd.io.json.json_normalize(json.loads(deals_data)['meta'])
                     offset_total = meta_df['total_count'][0]
@@ -711,9 +710,9 @@ class T1_API():
         camp_underpacing_final.drop(['campaign_spend_cap_automatic'], axis=1, inplace=True)
         return camp_underpacing_final, campaign_active_ids
 
-    def underpacing_strategies(self, campaign_ids):
+    def underpacing_strategies(self,organization_id, campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
-        df_deals = self.get_deals(strategy_ids)
+        df_deals = self.get_deals(organization_id,strategy_ids)
         if len(df_deals) !=0:
             # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
             df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
@@ -784,9 +783,9 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing, strategy_tr_ids, strategy_ids
 
-    def underpacing_strategies_mtd(self, campaign_ids):
+    def underpacing_strategies_mtd(self, organization_id,campaign_ids):
         strategy_ids, st_metadata_final = self.strategy_meta_data(campaign_ids)
-        df_deals = self.get_deals(strategy_ids)
+        df_deals = self.get_deals(organization_id,strategy_ids)
         if len(df_deals) !=0:
             # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
             df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
@@ -1076,9 +1075,9 @@ class T1_API():
         return win_los_df
 
 
-    def underpacing_strategies_id(self, strategy_ids):
+    def underpacing_strategies_id(self,organization_id, strategy_ids):
         st_metadata_final = self.strategy_meta_data_id(strategy_ids)
-        df_deals = self.get_deals(strategy_ids)
+        df_deals = self.get_deals(organization_id, strategy_ids)
         if len(df_deals) !=0:
             # df_deals = df_deals[['deal_id','deal_name','deal_identifier','deal_status','deal_floor_price','deal_creation_date']]
             df_deals = df_deals[['id','name','deal_identifier','status','price.value','created_on']]
