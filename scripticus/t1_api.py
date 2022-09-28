@@ -1146,57 +1146,6 @@ class T1_API():
         strategy_tr_ids=strategy_troubleshooting['strategy_id'].values
         return strategy_underpacing
 
-# creative assignements    !!!!!
-    # def apportion_pcts(pcts, total):
-    # proportions = [total * (pct / 100) for pct in pcts]
-    # apportions = [math.floor(p) for p in proportions]
-    # remainder = total - sum(apportions)
-    # remainders = [(i, p - math.floor(p)) for (i, p) in enumerate(proportions)]
-    # remainders.sort(key=operator.itemgetter(1), reverse=True)
-    # for (i, _) in itertools.cycle(remainders):
-    #     if remainder == 0:
-    #         break
-    #     else:
-    #         apportions[i] += 1
-    #         remainder -= 1
-    # return apportions
-    
-    def creative_assignment(self, mode, agency_id): 
-        if (mode=='appendandoptimize') or (mode=='optimizationonly'):
-            metrics='impressions,total_spend,post_view_conversions,post_click_conversions,total_conversions,post_view_revenue,post_click_revenue,total_revenue,total_aov,clicks'
-            dimensions='organization_name,advertiser_name,advertiser_id,campaign_id,campaign_name,strategy_name,strategy_id,concept_name, concept_id'
-            df_performance = self.t1_report(endpoint='performance', dimensions=dimensions,
-                                    filter='agency_id='+agency_id,
-                                    metrics=metrics,
-                                    precision='4',time_rollup='all',order='date',start_date=start_date,end_date=end_date)
-            df_performance['start_date'] = df_performance['start_date'].apply(lambda x: pd.Timestamp(x).strftime('%Y-%m-%d'))
-            if qubole:
-                sql='sql_conversion_log.hql'
-                replacements  = {
-                '_start_date_': start_date,
-                '_end_date_': end_date,
-                '_organization_id_': organization_id,
-                '_agency_id_': agency_id}
-                filename = 'conversion_log'
-                df_cl = t1.qubole(api_token,sql,replacements, filename)
-                df_cl_gr = df_cl[['campaign_id', 'strategy_id', 'concept_id', 'pc_revenue', 'pv_revenue']].groupby(['campaign_id', 'strategy_id'], as_index=False).sum()
-                df_cl_gr['total_revenue'] = df_cl_gr['pc_revenue']+df_cl_gr['pv_revenue']
-                df_performance.drop('total_revenue', axis=1, inplace=True)
-                dfit= pd.merge(df_performance, df_cl_gr,  how='left', left_on=['campaign_id', 'strategy_id', 'concept_id'], right_on=['campaign_id', 'strategy_id', 'concept_id'])
-                df_performance_f = dfit[dfit['strategy_id'].isin(strategy_ids)]
-                advertiser_ids=df_performance_f['advertiser_id'].unique()
-                campaign_ids=df_performance_f['campaign_id'].unique()
-                df_performance_f = df_performance_f.fillna(0)
-            else:
-                df_performance_f=df_performance[df_performance['strategy_id'].isin(strategy_ids)]
-                advertiser_ids=df_performance_f['advertiser_id'].unique()
-                campaign_ids=df_performance_f['campaign_id'].unique()
-            advertiser_ids=df_performance['advertiser_id'].unique()
-
-        elif (mode=='replacement') or (mode=='appendonly'):
-            advertiser_ids=df_adv['Advertiser'][df_adv['Geo'].isin(geo_incl)].unique()
-        return df_performance, advertiser_ids
-
 
 
 
