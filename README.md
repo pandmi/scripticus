@@ -1,9 +1,9 @@
 
 ### Scripticus
 
-A package for fast reporting, campaign monitoring and automation within T1 MediaMath ecosystem. 
+A package for rapid reporting, campaign monitoring and optimization automation within the T1 MediaMath ecosystem. 
 
-This package was created based on different APIs:  [MediaMath](https://apidocs.mediamath.com/), [Qubole](https://pypi.org/project/qds_sdk/) and [Looker](https://developers.looker.com/api/overview/).
+This package uses the following APIs as data sources: [MediaMath](https://apidocs.mediamath.com/), [Qubole](https://pypi.org/project/qds_sdk/) and [Looker](https://developers.looker.com/api/overview/).
 
 ### Features
 
