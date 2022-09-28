@@ -31,8 +31,7 @@ from lxml import etree
 import io
 from datetime import datetime, date, timedelta
 import re
-# import warnings
-# warnings.filterwarnings('ignore')
+
 
 def t1_api_login(username,password,client_id,client_secret):
     response=requests.post('http://auth.mediamath.com/oauth/token',
