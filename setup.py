@@ -2,6 +2,11 @@ from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+  
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 
 setup(
     name="scripticus",
@@ -13,34 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pandmi/scripticus",
     packages=find_packages(),
-    install_requires=[
-        "csv",
-        "datetime",
-        "email",
-        "http.client",
-        "io",
-        "IPython.display",
-        "ipywidgets",
-        "json",
-        "json",
-        "urllib.request",
-        "logging",
-        "lxml",
-        "matplotlib",
-        "numpy",
-        "os",
-        "pandas",
-        "pathlib",
-        "qds_sdk",
-        "re",
-        "requests",
-        "seaborn",
-        "smtplib",
-        "ssl",
-        "sqlalchemy",
-        "time",
-        "warnings"
-       ],
+    install_requires=required,
     python_requires='>3.1.*',
     classifiers=[
         "Programming Language :: Python :: 3",
