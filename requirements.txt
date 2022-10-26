@@ -86,8 +86,8 @@ pyzmq==23.2.1
 qds-sdk==1.16.1
 ruamel.yaml==0.17.21
 ruamel.yaml.clib==0.2.6
-scipy>1.9.*,
-seaborn>0.11.*
+scipy==1.9.1
+seaborn==0.11.2
 SecretStorage==3.3.3
 Send2Trash==1.8.0
 sniffio==1.2.0
