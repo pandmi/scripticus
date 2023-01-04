@@ -137,7 +137,7 @@ def looker_ag(slug, organization_id, organization_name, agency_filter, pct_tresh
         return up_campaigns_to_check, op_campaigns_to_check, up_campaigns_ids,op_campaigns_ids
 
 
-def looker_df_lv(slug, organization_id, organization_name, creds):
+def looker_df_lv(slug, organization_id, organization_name,pct_treshold, up_threshold, creds):
     demo = LookerAPI(creds) 
     json_auth = demo.login()
     query_response = demo.run_query_slug(slug, json_auth)
@@ -163,7 +163,7 @@ def looker_df_lv(slug, organization_id, organization_name, creds):
         'Latest Hour of Activity']
     records['Value Underpacing'] =records['Spend To Pace'] -records['Spend Yesterday']
     records_pacing=records[['Start Date','End Date','Organization', 'Advertiser Name','Campaign ID','Campaign Name','Days Remaining', 'Spend To Pace','Spend Yesterday','Value Underpacing','Pacing Ratio', 'Latest Hour of Activity']]
-    up_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organization_name)&(records_pacing['Days Remaining'] > 1)].sort_values(by='Value Underpacing', ascending=False)
+    up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organization_name)&(records_pacing['Days Remaining'] > 1)].sort_values(by='Value Underpacing', ascending=False)
     up_campaigns_ids=up_campaigns_to_check['Campaign ID'].values
     op_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organization_name)].sort_values(by='Latest Hour of Activity', ascending=True)
     op_campaigns_ids=op_campaigns_to_check['Campaign ID'].values
