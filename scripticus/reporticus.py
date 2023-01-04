@@ -31,6 +31,7 @@ from lxml import etree
 import io
 from datetime import datetime, date, timedelta
 import re
+from databricks import sql
 
 
 def t1_api_login(username,password,client_id,client_secret):
@@ -189,6 +190,28 @@ def filter_strategy_site_lists(strategy_site_lists,keyword):
     else:
         return autoblacklists
 
+def databricks(db_token,sqlfile,replacements):
+    connection = sql.connect(
+      server_hostname='mediamath-analytics-datascience.cloud.databricks.com',
+      http_path='/sql/1.0/warehouses/12224dc3f7ec0dba',
+      access_token=db_token)
+
+    cursor = connection.cursor()
+
+    with open(sqlfile,'r') as f:
+        query = f.read()
+
+    query = find_replace_multi(query,replacements)
+
+
+    cursor.execute(query)
+    result = cursor.fetchall()
+    df = pd.DataFrame.from_records(result)
+    df.columns=[x[0] for x in cursor.description ]
+
+    cursor.close()
+    connection.close()
+    return df
 
 def qubole(api_token,sql,replacements,filename):
     Qubole.configure(api_token=api_token)
