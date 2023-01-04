@@ -10,14 +10,14 @@ import http.client
 import time
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler(str(time.strftime("%d_%m_%Y")) +"_looker_API_Calls" + ".log")
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.info('Testing Logs')
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+# handler = logging.FileHandler(str(time.strftime("%d_%m_%Y")) +"_looker_API_Calls" + ".log")
+# handler.setLevel(logging.INFO)
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# handler.setFormatter(formatter)
+# logger.addHandler(handler)
+# logger.info('Testing Logs')
 
 class LookerAPI(object):
     """Class that contains methods and variables related to looker API authentication"""
