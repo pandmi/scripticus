@@ -89,7 +89,7 @@ def looker_df(slug, organization_id, organization_name, advertiser_filter, pct_t
         if advertiser_filter:
             up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organization_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
         else: 
-            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organization_name)&(records_pacing['Days Remaining'] > 1)&(records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Value Underpacing', ascending=False)
+            up_campaigns_to_check = records_pacing[(records_pacing['Pacing Ratio'] < pct_treshold)&(records_pacing['Value Underpacing'] > up_treshold)&(records_pacing['Organization'] == organization_name)&(records_pacing['Days Remaining'] > 1)].sort_values(by='Value Underpacing', ascending=False)
         up_campaigns_ids=up_campaigns_to_check['Campaign ID'].values
         if advertiser_filter:
              op_campaigns_to_check = records_pacing[(records_pacing['Organization'] == organization_name) & (records_pacing['Advertiser Name'].str.contains(advertiser_filter))].sort_values(by='Latest Hour of Activity', ascending=True)
