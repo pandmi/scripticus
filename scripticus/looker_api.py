@@ -137,7 +137,7 @@ def looker_ag(slug, organization_id, organization_name, agency_filter, pct_tresh
         return up_campaigns_to_check, op_campaigns_to_check, up_campaigns_ids,op_campaigns_ids
 
 
-def looker_df_lv(slug, organization_id, organization_name,pct_treshold, up_threshold, creds):
+def looker_df_lv(slug, organization_id,organization_name,pct_treshold,up_treshold,creds):
     demo = LookerAPI(creds) 
     json_auth = demo.login()
     query_response = demo.run_query_slug(slug, json_auth)
