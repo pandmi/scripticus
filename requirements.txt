@@ -70,4 +70,6 @@ terminado==0.15.0
 tinycss2==1.1.1
 tornado==6.1
 XlsxWriter==3.0.3
-databricks
+databricks==0.2
+databricks-cli==0.17.4
+databricks-sql-connector==2.2.1
