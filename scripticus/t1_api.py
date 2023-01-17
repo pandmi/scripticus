@@ -204,6 +204,84 @@ class T1_API():
                                             'campaign_spend_cap_amount','campaign_frequency_type','campaign_frequency_interval','campaign_frequency_amount']]
         return camp_pacing_medicine, campaign_active_ids
     
+    def creative_meta_data(self, creative_ids):
+        cr_metadata = pd.DataFrame()
+        for creative_id in creative_ids:
+            version_data = []
+            url_page = 'https://api.mediamath.com/api/v2.0/atomic_creatives/{}'.format(creative_id)
+
+            strats_data = requests.get(url_page, cookies = self.resp.cookies).text
+            st = etree.parse(io.StringIO(strats_data))
+            name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
+            created_on = st.xpath('''.//prop[@name = 'created_on']/@value''')[0]
+            last_modified = st.xpath('''.//prop[@name = 'last_modified']/@value''')[0]
+            status = int(st.xpath('''.//prop[@name = 'status']/@value''')[0])
+            width = int(st.xpath('''.//prop[@name = 'width']/@value''')[0])
+            height = int(st.xpath('''.//prop[@name = 'height']/@value''')[0])
+            ad_format = st.xpath('''.//prop[@name = 'ad_format']/@value''')[0]
+            is_https = st.xpath('''.//prop[@name = 'is_https']/@value''')[0]
+            concept_id = int(st.xpath('''.//prop[@name = 'concept_id']/@value''')[0])
+            rich_media = st.xpath('''.//prop[@name = 'rich_media']/@value''')[0]
+            approval_status = st.xpath('''.//prop[@name = 'approval_status']/@value''')[0]
+            rejected_reason = st.xpath('''.//prop[@name = 'rejected_reason']/@value''')[0]
+            try:
+                click_through_url = st.xpath('''.//prop[@name = 'click_through_url']/@value''')[0]
+            except:
+                click_through_url = 0
+
+            is_mraid = float(st.xpath('''.//prop[@name = 'is_mraid']/@value''')[0])
+            img_src=img_src=st.xpath('''.//prop[@name = 'tag']/@value''')
+
+
+            version_data_tmp = [creative_id,
+                                    name,
+                                    created_on,
+                                    last_modified,
+                                    status,
+                                    width,
+                                    height,
+                                    ad_format,
+                                    is_https,
+                                    concept_id,
+                                    rich_media,
+                                    approval_status,
+                                    rejected_reason,
+                                    click_through_url,
+                                    is_mraid,
+                                    img_src]
+
+            version_data.append(version_data_tmp)
+            cr_metadata_tmp = pd.DataFrame(version_data, columns = ['creative_id',
+                                                                    'name',
+                                                                    'created_on',
+                                                                    'last_modified',
+                                                                    'status',
+                                                                    'width',
+                                                                    'height',
+                                                                    'ad_format',
+                                                                    'is_https',
+                                                                    'concept_id',
+                                                                    'rich_media',
+                                                                    'approval_status',
+                                                                    'rejected_reason',
+                                                                    'click_through_url',
+                                                                    'is_mraid',
+                                                                    'img_src'])
+
+            if len(cr_metadata) == 0:
+                cr_metadata = cr_metadata_tmp
+            else:
+                cr_metadata = pd.concat([cr_metadata, cr_metadata_tmp])
+
+        creatives_meta = cr_metadata[['creative_id','width', 'height','ad_format','created_on','last_modified','click_through_url','img_src']]
+        creatives_meta['img_src'] = creatives_meta['img_src'].astype(str)
+        creatives_meta['img_src'] = creatives_meta['img_src'].str.extract('(https://creative.mathads.com.*?)\.jpg',expand=True)
+        creatives_meta['img_src']= creatives_meta['img_src']+'.jpg'
+
+        return creatives_meta
+    
+    
+    
     def strategy_meta_data(self, campaign_ids):
         st_metadata = pd.DataFrame()
         for campaign_id in campaign_ids:
