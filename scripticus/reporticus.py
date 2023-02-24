@@ -193,7 +193,7 @@ def filter_strategy_site_lists(strategy_site_lists,keyword):
 def databricks(db_token,sqlfile,replacements):
     connection = sql.connect(
       server_hostname='mediamath-analytics-datascience.cloud.databricks.com',
-      http_path='/sql/1.0/warehouses/12224dc3f7ec0dba',
+      http_path='/sql/1.0/warehouses/b3c3e75a3b658371',
       access_token=db_token)
 
     cursor = connection.cursor()
