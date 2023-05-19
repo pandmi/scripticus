@@ -401,10 +401,6 @@ class T1_API():
                         st_use_dba_strategy_pacing= st.xpath('''.//prop[@name = 'use_dba_strategy_pacing']/@value''')[0]
                     except:
                         st_use_dba_strategy_pacing = 0
-                    try:
-                        st_status= st.xpath('''.//prop[@name = 'status']/@value''')[0]
-                    except:
-                        st_status = 0
 
                     version_data_tmp = [ca_id,
                                         ca_name,
@@ -431,7 +427,7 @@ class T1_API():
                                         st_bid_price_is_media_only,
                                         st_exchange_type_for_run_on_all, st_site_restriction_transparent_urls,st_audience_segment_include_op, 
                                         st_targeting_segment_include_op, st_pixel_target_expr, st_run_on_all_pmp, st_run_on_display,st_run_on_mobile,
-                                        st_frequency_optimization,st_use_dba_strategy_pacing,st_status]
+                                        st_frequency_optimization,st_use_dba_strategy_pacing]
                     
 
                     version_data.append(version_data_tmp)
@@ -462,7 +458,7 @@ class T1_API():
                                                                     'description',
                                                                     'bid_price_is_media_only',
                                                                     'exchange_type_for_run_on_all', 'restriction_transparent_urls','audience_include_op', 'cntx_include_op',
-                                                                    'pixel_target', 'on_all_pmp', 'on_display', 'on_mobile','frequency_optimization','dba_strategy_pacing','status'])
+                                                                    'pixel_target', 'on_all_pmp', 'on_display', 'on_mobile','frequency_optimization','dba_strategy_pacing'])
             
             if len(st_metadata) == 0:
                 st_metadata = st_metadata_tmp
@@ -471,7 +467,7 @@ class T1_API():
                       
         st_metadata_fin = st_metadata[(st_metadata['strategy_status'] == 1)]
         strategy_ids=st_metadata_fin['strategy_id'].values
-        st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name','status','frequency_optimization','frequency_interval','frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only','dba_strategy_pacing']]
+        st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name','frequency_optimization','frequency_interval','frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only','dba_strategy_pacing']]
         return strategy_ids, st_metadata_final
 
     def strategy_daypart(self, strategy_ids):
