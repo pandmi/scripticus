@@ -467,7 +467,7 @@ class T1_API():
                       
         st_metadata_fin = st_metadata[(st_metadata['strategy_status'] == 1)]
         strategy_ids=st_metadata_fin['strategy_id'].values
-        st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name','frequency_optimization','frequency_interval','frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only','dba_strategy_pacing']]
+        st_metadata_final = st_metadata_fin[['campaign_id', 'campaign_name', 'strategy_id', 'strategy_name','strategy_status','frequency_optimization','frequency_interval','frequency_type','frequency_amount', 'pacing_type', 'pacing_amount', 'min_bid', 'max_bid', 'goal_type',  'goal_value', 'bid_price_is_media_only','dba_strategy_pacing']]
         return strategy_ids, st_metadata_final
 
     def strategy_daypart(self, strategy_ids):
