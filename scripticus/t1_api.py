@@ -394,7 +394,7 @@ class T1_API():
                     except:
                         st_run_on_mobile = 0
                     try:
-                        st_frequency_optimization= st.xpath('''.//prop[@name = 'frequency_optimization']/@value''')[0]
+                        st_frequency_optimization= int(st.xpath('''.//prop[@name = 'frequency_optimization']/@value''')[0])
                     except:
                         st_frequency_optimization = 0
                     try:
