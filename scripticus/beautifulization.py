@@ -154,11 +154,16 @@ def rejected(x):
  
     return df1
 
+def highlight_last(x):
+    '''
+    highlight the last row in a Series BOLD.
+    '''
+    return ['font-weight: bold' if v == x.iloc[-1] else '' for v in x]
 
 
 def table_style(df,color,kpi):
         cm = sns.light_palette(color, as_cmap=True)
-        format_dict = {'clickers_mu':'{0:,.0f}','total_conversions':'{0:,.0f}','measurable':'{0:,.0f}','in_view':'{0:,.0f}',\
+        format_dict = {'eCPM':'{0:,.2f}','Media eCPM':'{0:,.2f}','eCPCV':'{0:,.4f}','Total Spend':'{0:,.2f}','clickers_mu':'{0:,.0f}','total_conversions':'{0:,.0f}','measurable':'{0:,.0f}','in_view':'{0:,.0f}',\
                        'VR': '{:.2%}','audience_index_impression':'{0:,.0f}', 'Spend To Pace': '{:.1f}',  'Days Remaining': '{:.0f}', \
                        'target_accuracy':'{0:,.0%}','audience_index_clicks':'{0:,.0f}','total_spend':'{0:,.1f}', 'bid_rate': '{:,.1f}',\
                        'win_rate': '{:,.1f}','min_bid_amount_cpm': '{:,.1f}', 'max_bid_amount_cpm': '{:,.1f}','watermark_spend': '{:,.1f}',\
@@ -170,7 +175,19 @@ def table_style(df,color,kpi):
         stdf = df.style.background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
         return stdf
 
-    
+def table_style_total(df,color,kpi):
+        cm = sns.light_palette(color, as_cmap=True)
+        format_dict = {'eCPM':'{0:,.2f}','Media eCPM':'{0:,.2f}','eCPCV':'{0:,.4f}','Total Spend':'{0:,.2f}','clickers_mu':'{0:,.0f}','total_conversions':'{0:,.0f}','measurable':'{0:,.0f}','in_view':'{0:,.0f}',\
+                       'VR': '{:.2%}','audience_index_impression':'{0:,.0f}', 'Spend To Pace': '{:.1f}',  'Days Remaining': '{:.0f}', \
+                       'target_accuracy':'{0:,.0%}','audience_index_clicks':'{0:,.0f}','total_spend':'{0:,.1f}', 'bid_rate': '{:,.1f}',\
+                       'win_rate': '{:,.1f}','min_bid_amount_cpm': '{:,.1f}', 'max_bid_amount_cpm': '{:,.1f}','watermark_spend': '{:,.1f}',\
+                       'Latest Hour of Activity':'{0:,.0f}','Scheduled End Hour':'{0:,.0f}', 'total_revenue':'{0:,.1f}','NDC':'{0:,.2f}',\
+                       'LP':'{0:,.0f}', 'CPA_LP':'{0:,.2f}','CPC':'{0:,.2f}','CPA_Signup':'{0:,.2f}','CTR': '{:.2%}','VCR': '{:.0%}','spend_share': '{:.2%}', 'CPA_NDC':'{0:,.1f}',\
+                       'CPA_DC':'{0:,.1f}','ROI': '{:.2f}','ROI_segment': '{:.2f}','CPM': '{0:,.1f}', 'vCPM': '{0:,.1f}','CPA': '{0:,.1f}','SSP_fee_pct': '{:.2%}','ROI_usd': '{:.2f}',\
+                       'CPA_usd':'{0:,.2f}','CPC_usd':'{0:,.2f}','CPM_usd': '{0:,.1f}', 'total_spend_usd':'{0:,.1f}','total_revenue_usd':'{0:,.1f}',\
+                       'media_cost_usd':'{0:,.1f}','ssp_technology_fee_usd':'{0:,.2f}', 'disc_conv_uplift':'{0:,.0%}','disc_order_uplift':'{0:,.0f}','disc_rev_uplift':'{0:,.0f}'}
+        stdf = df.style.apply(highlight_last).background_gradient(cmap=cm, subset=kpi).format(format_dict).hide_index()
+        return stdf    
     
 def table_style_ftd(df,color,kpi):
         cm = sns.light_palette(color, as_cmap=True)
