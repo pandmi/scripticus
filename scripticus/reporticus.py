@@ -134,6 +134,10 @@ class T1_API():
             df['SSP_fee_pct'] = df.ssp_technology_fee_usd/df.media_cost_usd
         if 'VCR' in kpi:
             df['VCR'] = df.video_complete/df.video_start
+        if 'CPCV' in kpi:
+            df['CPCV'] = df.total_spend/df.video_complete
+        if 'mCPM' in kpi:
+            df['mCPM'] = (df.media_cost*1000)/df.impressions
         df=df.sort_values(by=sortby, ascending=ascending)
         df.replace([np.inf, -np.inf], np.nan)
         return df 
