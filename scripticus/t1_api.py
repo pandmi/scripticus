@@ -760,8 +760,8 @@ class T1_API():
                 
                 st_metadata_tmp = pd.DataFrame(version_data, columns = ['segment_id',
                                             'targeting_vendor_id',
-                                            'parent_targeting_segment_id,
-                                            'external_code,
+                                            'parent_targeting_segment_id',
+                                            'external_code',
                                             'name',
                                             'full_path'])
                 
