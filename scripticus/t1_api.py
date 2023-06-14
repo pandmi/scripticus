@@ -739,7 +739,9 @@ class T1_API():
                 
     
                     for st in tree.iterfind('entities/entity'):
-                            segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
+                            segment_id = int(st.attrib['id'])
+
+                            # segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
                             targeting_vendor_id = int(st.xpath('''.//prop[@name = 'targeting_vendor_id']/@value''')[0])
                             parent_targeting_segment_id = int(st.xpath('''.//prop[@name = 'parent_targeting_segment_id']/@value''')[0])
                             external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
