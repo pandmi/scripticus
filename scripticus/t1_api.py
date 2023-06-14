@@ -766,7 +766,7 @@ class T1_API():
 
                             version_data.append(version_data_tmp)
 
-                    offset = offset + 250
+                    offset = offset + 1000
                 
                 st_metadata_tmp = pd.DataFrame(version_data, columns = ['segment_id',
                                             'targeting_vendor_id',
