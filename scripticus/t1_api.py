@@ -744,10 +744,18 @@ class T1_API():
                             # segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
                             targeting_vendor_id = int(st.xpath('''.//prop[@name = 'targeting_vendor_id']/@value''')[0])
                             parent_targeting_segment_id = int(st.xpath('''.//prop[@name = 'parent_targeting_segment_id']/@value''')[0])
-                            external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
-                            name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
-                            full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
-
+                            try:            
+                                external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
+                            except:
+                                external_code = 0
+                            try: 
+                                name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
+                           except:
+                                name = 0
+                            try: 
+                                full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
+                            except:
+                                full_path = 0
                             version_data_tmp = [segment_id,
                                                 targeting_vendor_id,
                                                 parent_targeting_segment_id,
