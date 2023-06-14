@@ -750,7 +750,7 @@ class T1_API():
                                 external_code = 0
                             try: 
                                 name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
-                           except:
+                            except:
                                 name = 0
                             try: 
                                 full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
