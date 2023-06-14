@@ -723,6 +723,54 @@ class T1_API():
                 else:
                     str_deal_metadata = pd.concat([str_deal_metadata, str_deal_metadata_tmp])
             return str_deal_metadata
+    
+    def targeting_segments_data(self, parent_targeting_segment_ids):
+            st_metadata = pd.DataFrame()
+            for parent_id in parent_targeting_segment_ids:
+                offset = 0
+                offset_total = 1
+                version_data = []
+                while offset < offset_total:
+                
+                    url_page = 'https://api.mediamath.com/api/v2.0/targeting_segments?full=*&parent={}'.format(parent_id)
+                    strats_data = requests.get(url_page, cookies = self.resp.cookies).text
+                    tree = etree.parse(io.StringIO(strats_data))
+                    offset_total = int(tree.xpath('''.//entities/@count''')[0])
+                
+    
+                for st in tree.iterfind('entities/entity'):
+                        segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
+                        targeting_vendor_id = int(st.xpath('''.//prop[@name = 'targeting_vendor_id']/@value''')[0])
+                        parent_targeting_segment_id = int(st.xpath('''.//prop[@name = 'parent_targeting_segment_id']/@value''')[0])
+                        external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
+                        name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
+                        full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
+
+                        version_data_tmp = [segment_id,
+                                            targeting_vendor_id,
+                                            parent_targeting_segment_id,
+                                            external_code,
+                                            name,
+                                            full_path]
+                        
+
+                        version_data.append(version_data_tmp)
+
+                    offset = offset + 250
+                
+                st_metadata_tmp = pd.DataFrame(version_data, columns = ['segment_id',
+                                            'targeting_vendor_id',
+                                            'parent_targeting_segment_id,
+                                            'external_code,
+                                            'name',
+                                            'full_path'])
+                
+                if len(st_metadata) == 0:
+                    st_metadata = st_metadata_tmp
+                else:
+                    st_metadata = pd.concat([st_metadata, st_metadata_tmp])
+                      
+            return st_metadata
 
     def str_deal_group_metadata(self,strategy_ids):
             str_deal_group_metadata = pd.DataFrame()
