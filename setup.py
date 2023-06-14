@@ -10,7 +10,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="scripticus",
-    version="2.2.7",
+    version="2.2.8",
     author="Dmitry Pankov",
     author_email="dp@pandmi.com",
     description="A package for working with the MediaMath T1 ecosystem, creating reports, dashboards, and automating campaign optimization.",

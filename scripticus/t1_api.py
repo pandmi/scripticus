@@ -738,23 +738,23 @@ class T1_API():
                     offset_total = int(tree.xpath('''.//entities/@count''')[0])
                 
     
-                for st in tree.iterfind('entities/entity'):
-                        segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
-                        targeting_vendor_id = int(st.xpath('''.//prop[@name = 'targeting_vendor_id']/@value''')[0])
-                        parent_targeting_segment_id = int(st.xpath('''.//prop[@name = 'parent_targeting_segment_id']/@value''')[0])
-                        external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
-                        name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
-                        full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
+                    for st in tree.iterfind('entities/entity'):
+                            segment_id = int(st.xpath('''.//entity[@type = 'targeting_segment']/@id''')[0])
+                            targeting_vendor_id = int(st.xpath('''.//prop[@name = 'targeting_vendor_id']/@value''')[0])
+                            parent_targeting_segment_id = int(st.xpath('''.//prop[@name = 'parent_targeting_segment_id']/@value''')[0])
+                            external_code = int(st.xpath('''.//prop[@name = 'external_code']/@value''')[0])
+                            name = st.xpath('''.//prop[@name = 'name']/@value''')[0]
+                            full_path = st.xpath('''.//prop[@name = 'full_path']/@value''')[0]
 
-                        version_data_tmp = [segment_id,
-                                            targeting_vendor_id,
-                                            parent_targeting_segment_id,
-                                            external_code,
-                                            name,
-                                            full_path]
-                        
+                            version_data_tmp = [segment_id,
+                                                targeting_vendor_id,
+                                                parent_targeting_segment_id,
+                                                external_code,
+                                                name,
+                                                full_path]
+                            
 
-                        version_data.append(version_data_tmp)
+                            version_data.append(version_data_tmp)
 
                     offset = offset + 250
                 
