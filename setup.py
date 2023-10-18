@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
   
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
+# with open('requirements.txt') as f:
+#     required = f.read().splitlines()
 
 
 setup(
@@ -17,8 +17,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pandmi/scripticus",
-    packages=find_packages(),
-    install_requires=required,
+    # packages=find_packages(),
+    # install_requires=required,
     python_requires > '3.1.*',
     classifiers=[
         "Programming Language :: Python :: 3",
