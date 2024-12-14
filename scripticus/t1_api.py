@@ -9,7 +9,7 @@ import ipywidgets as widgets
 from ipywidgets import interact, interact_manual
 from IPython.display import display
 import json
-from pandas.io.json import json_normalize
+from pandas import json_normalize
 import http.client
 import seaborn as sns
 import matplotlib.pyplot as plt
