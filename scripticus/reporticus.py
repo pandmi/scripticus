@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 import csv
 import os
 import time
-import qds_sdk
+# import qds_sdk
 import sqlalchemy
-import qds_sdk
-from qds_sdk.qubole import Qubole
-from qds_sdk.commands import Command
-from qds_sdk.commands import HiveCommand
+# import qds_sdk
+# from qds_sdk.qubole import Qubole
+# from qds_sdk.commands import Command
+# from qds_sdk.commands import HiveCommand
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 from matplotlib.text import Text
 import datetime
@@ -31,7 +31,7 @@ from lxml import etree
 import io
 from datetime import datetime, date, timedelta
 import re
-from databricks import sql
+# from databricks import sql
 
 
 def t1_api_login(username,password,client_id,client_secret):
