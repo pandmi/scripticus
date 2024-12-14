@@ -19,7 +19,7 @@ setup(
     url="https://github.com/pandmi/scripticus",
     # packages=find_packages(),
     # install_requires=required,
-    python_requires > '3.1.*',
+    # python_requires > '3.1.*',
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
