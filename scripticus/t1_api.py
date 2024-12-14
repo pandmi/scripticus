@@ -16,9 +16,9 @@ import matplotlib.pyplot as plt
 import csv
 import os
 import time
-import qds_sdk
+# import qds_sdk
 import sqlalchemy
-from qds_sdk.commands import *
+# from qds_sdk.commands import *
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 from matplotlib.text import Text
 import datetime
