@@ -74,3 +74,9 @@
 # databricks-cli==0.17.4
 # databricks-sql-connector==2.2.1
 # pathlib
+
+requests
+matplotlib
+numpy
+pandas
+seaborn
