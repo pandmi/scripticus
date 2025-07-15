@@ -11,7 +11,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
-from six.moves.urllib.request import urlopen
 import base64
 import csv
 import datetime
