@@ -9,7 +9,6 @@ from googleapiclient import discovery
 from googleapiclient import http
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from IPython import get_ipython
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
 from six.moves.urllib.request import urlopen
