@@ -9,8 +9,10 @@ from googleapiclient import discovery
 from googleapiclient import http
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from IPython import get_ipython
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
+from six.moves.urllib.request import urlopen
 import base64
 import csv
 import datetime
@@ -28,20 +30,26 @@ import time
 
 # Singular
 
+# Singular
 
-def sng_create_async_report(dimensions, metrics, start_date, end_date, api_key, time_breakdown="day", report_format="csv"):
+def sng_create_async_report(dimensions, metrics, cohort_metrics,  start_date, end_date, api_key, time_breakdown="day", report_format="csv", cohort_periods='ltv'):
     payload = {
         "dimensions": dimensions,
         "metrics": metrics,
+        "cohort_metrics": cohort_metrics,
+
         "start_date": start_date,
         "end_date": end_date,
+        "format": report_format,
         "time_breakdown": time_breakdown,
-        "format": report_format
+        "cohort_periods": cohort_periods
     }
     params = {"api_key": api_key}
     response = requests.post("https://api.singular.net/api/v2.0/create_async_report", params=params, json=payload)
     response.raise_for_status()
     return response.json()["value"]["report_id"]
+
+
 
 # Function to check report status and get the download URL
 def sng_get_report_download_url(report_id, api_key):
@@ -920,7 +928,7 @@ def map_conversions(df):
     return df
 
 
-def fetch_adform_data(dimensions, metrics, date_range, access_token):
+def fetch_adform_data(dimensions, metrics, custom_filter, date_range, access_token):
     """
     Fetches data from the Adform API and returns it as a DataFrame.
 
@@ -946,21 +954,21 @@ def fetch_adform_data(dimensions, metrics, date_range, access_token):
     }
 
     # Define the body of the request
+    full_filter = {
+        "date": {
+            "from": f"{date_range[0]}T00:00:00.000Z",
+            "to": f"{date_range[1]}T23:59:59.999Z"
+        },
+        "campaign": { "active": "all" }
+    }
+    full_filter.update(custom_filter or {})  # Merge custom filters, if any
+
     body = {
         "dimensions": dimensions,
         "metrics": metrics,
-        "filter": {
-            "date": {
-                "from": f"{date_range[0]}T00:00:00.000Z",
-                "to": f"{date_range[1]}T23:59:59.999Z"
-            },
-        "campaign": { "active": "all"},
-        
-        },
-
+        "filter": full_filter,
         "includeRowCount": True,
         "includeTotals": False
-        
     }
 
     try:
@@ -1401,4 +1409,256 @@ def df_format_campaign(df):
     return df
 
 
+# Moloco
 
+import requests
+import time
+import pandas as pd
+from io import StringIO
+
+def fetch_moloko_report(api_key, ad_account_id, start_date, end_date, token_url, report_url, timeout=120):
+    """
+    Fetches a MOL report as a DataFrame.
+
+    Parameters:
+    - api_key (str): API key for authentication
+    - ad_account_id (str): Ad account ID
+    - start_date (str): Report start date in "YYYY-MM-DD"
+    - end_date (str): Report end date in "YYYY-MM-DD"
+    - token_url (str): URL to retrieve access token
+    - report_url (str): URL to request the report
+    - timeout (int): Max time to wait for report readiness (seconds)
+
+    Returns:
+    - pd.DataFrame: The final report as a DataFrame
+    """
+
+    # === STEP 1: Get Access Token ===
+    token_payload = { "api_key": api_key }
+    token_headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    token_response = requests.post(token_url, headers=token_headers, json=token_payload)
+    if token_response.status_code != 200:
+        raise Exception(f"❌ Failed to get token: {token_response.text}")
+    access_token = token_response.json().get("token")
+
+    # === STEP 2: Request Report ===
+    report_payload = {
+        "date_range": {
+            "start": start_date,
+            "end": end_date
+        },
+        "ad_account_id": ad_account_id,
+        "dimensions": ["DATE", "CAMPAIGN"]
+    }
+
+    report_headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    report_response = requests.post(report_url, json=report_payload, headers=report_headers)
+    if report_response.status_code != 202:
+        raise Exception(f"❌ Report request failed: {report_response.text}")
+
+    report_status_url = report_response.json().get("status")
+
+    # === STEP 3: Poll Until Report is Ready ===
+    start_time = time.time()
+    while True:
+        status_response = requests.get(report_status_url, headers=report_headers)
+        status_json = status_response.json()
+
+        if "location_csv" in status_json:
+            report_download_url = status_json["location_csv"]
+            break
+        elif time.time() - start_time > timeout:
+            raise Exception("⏳ Timed out waiting for report.")
+        else:
+            time.sleep(5)
+
+    # === STEP 4: Download CSV Report ===
+    download_response = requests.get(report_download_url)
+    if download_response.status_code != 200:
+        raise Exception(f"❌ Failed to download report: {download_response.text}")
+
+    csv_data = download_response.content.decode("utf-8")
+    df = pd.read_csv(StringIO(csv_data))
+    
+    return df
+
+
+# Exoclick
+
+import requests
+import json
+from datetime import datetime
+from functools import lru_cache
+
+# Set your token here
+API_URL = "https://api.exoclick.com/v2"
+TOKEN_CACHE_DURATION = 1500  # 25 minutes in seconds
+
+class ExoClickAPI:
+    def __init__(self, api_token):
+        self.api_token = api_token
+        self.token_data = self.login()
+
+    def login(self):
+        url = f"{API_URL}/login"
+        payload = {"api_token": self.api_token}
+        headers = {"Content-Type": "application/json"}
+
+        for _ in range(25):
+            res = requests.post(url, data=json.dumps(payload), headers=headers)
+            if res.status_code == 200:
+                return res.json()
+            else:
+                print(f"Login attempt failed: {res.status_code} - {res.text}")
+        raise Exception("Failed to authenticate with API")
+
+    def get_auth_header(self):
+        return {"Authorization": f"{self.token_data['type']} {self.token_data['token']}"}
+
+    def options_data(self, method="GET", payload=None):
+        headers = self.get_auth_header()
+        if payload:
+            return {
+                "headers": headers,
+                "json": payload
+            }
+        else:
+            return {"headers": headers}
+
+    def api_get_main_data(self, from_date=None, to_date=None, order="cost", limit=10000):
+        if not from_date:
+            from_date = datetime.today().replace(day=1).strftime("%Y%m%d")
+        if not to_date:
+            to_date = datetime.today().strftime("%Y%m%d")
+
+        url = (f"{API_URL}/statistics/advertiser/date"
+               f"?date-to={to_date}&date-from={from_date}"
+               f"&limit={limit}"
+               f"&include=totals&additional_group_by=campaign&exclude_deleted=false")
+
+        for _ in range(25):
+            res = requests.get(url, headers=self.get_auth_header())
+            if res.status_code == 200:
+                return res.json().get("result", [])
+        print(f"Error fetching main data: {res.status_code} - {res.text}")
+        return []
+
+    def get_campaign_info(self, campaign_id):
+        url = f"{API_URL}/campaigns/{campaign_id}"
+        for _ in range(25):
+            res = requests.get(url, headers=self.get_auth_header())
+            if res.status_code == 200:
+                return res.json().get("result", {})
+        print(f"Error fetching campaign info: {res.status_code} - {res.text}")
+        return {}
+
+    def get_pricing_model(self, model):
+        pricing_model = {"cpc": "1", "cpm": "2", "cpa": "3", "smart": "4", "cpv": "5"}
+        return pricing_model.get(model, model)
+
+    def get_network(self, value):
+        return {"All": "0", "RON": "1", "Premium": "2", "Members Area": "3"}.get(value)
+
+    def get_partner(self, value):
+        return {"Enabled": "1", "Disabled": "0"}.get(value)
+
+
+
+# Working with email
+
+import imaplib
+import email
+from email.header import decode_header
+import os
+from io import StringIO
+import requests
+from io import BytesIO
+from datetime import datetime
+import csv
+
+def connect_to_gmail(IMAP_SERVER, IMAP_PORT,EMAIL_USER, EMAIL_PASS):
+    """Connect to Gmail using IMAP."""
+    try:
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        mail.login(EMAIL_USER, EMAIL_PASS)
+        return mail
+    except imaplib.IMAP4.error as e:
+        print(f"IMAP login failed: {e}")
+        return None
+    
+
+def fetch_csv_attachments(mail,SENDER_EMAIL,SUBJECT):
+    """Fetch the most recent CSV attachment from emails with the specified subject from the sender."""
+    mail.select('"[Gmail]/All Mail"')  # Searches both inbox and archived emails
+    status, messages = mail.search(None, f'FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}"')
+
+    if status != "OK" or not messages[0]:
+        print("No emails found from the sender with the specified subject.")
+        return None
+
+    message_ids = messages[0].split()
+    latest_email_id = message_ids[-1]  # Get the ID of the last email
+
+    status, msg_data = mail.fetch(latest_email_id, "(RFC822)")
+    if status != "OK":
+        print("Error fetching email.")
+        return None
+
+    for response_part in msg_data:
+        if isinstance(response_part, tuple):
+            msg = email.message_from_bytes(response_part[1])
+
+            # Extract attachments
+            for part in msg.walk():
+                filename = part.get_filename()
+                if filename and filename.endswith(".csv"):
+                    attachment_data = part.get_payload(decode=True)
+                    return filename, attachment_data  # Return the first CSV attachment found
+
+    print("No CSV attachments found.")
+    return None
+
+
+def detect_delimiter(data):
+    """Detect the delimiter of a CSV file."""
+    sample = data.decode(errors="ignore").splitlines()[0]  # Read first line
+    sniffer = csv.Sniffer()
+    try:
+        return sniffer.sniff(sample).delimiter  # Auto-detect delimiter
+    except csv.Error:
+        return ","  # Default to comma
+
+
+def load_csv_dataframe(data):
+    """Load CSV data into a Pandas DataFrame, skipping metadata before 'Date'."""
+    try:
+        delimiter = detect_delimiter(data)
+        print(f"Detected delimiter: {delimiter}")  # Debugging step
+
+        # Read raw CSV data into a list of lines
+        raw_lines = data.decode(errors="ignore").splitlines()
+
+        # Find the first row where the first column is exactly "Date"
+        start_idx = next((i for i, line in enumerate(raw_lines) if line.strip().split(delimiter)[0] == "Date"), None)
+
+        if start_idx is None:
+            print("Error: 'Date' not found in the CSV.")
+            return None
+
+        # Read the CSV from the detected row onward
+        df = pd.read_csv(BytesIO(data), encoding="utf-8", engine="python", sep=delimiter, skiprows=start_idx)
+
+        return df
+
+    except Exception as e:
+        print(f"Error reading CSV: {e}")
+        return None
