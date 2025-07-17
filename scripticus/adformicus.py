@@ -64,8 +64,6 @@ def sng_get_report_download_url(report_id, api_key):
         time.sleep(10)  # Wait before retrying
 
 
-
-
 # Singular!!!
 def sng_source2networks(value):
     mappings = {
@@ -1571,93 +1569,3 @@ class ExoClickAPI:
         return {"Enabled": "1", "Disabled": "0"}.get(value)
 
 
-
-# Working with email
-
-import imaplib
-import email
-from email.header import decode_header
-import os
-from io import StringIO
-import requests
-from io import BytesIO
-from datetime import datetime
-import csv
-
-def connect_to_gmail(IMAP_SERVER, IMAP_PORT,EMAIL_USER, EMAIL_PASS):
-    """Connect to Gmail using IMAP."""
-    try:
-        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
-        mail.login(EMAIL_USER, EMAIL_PASS)
-        return mail
-    except imaplib.IMAP4.error as e:
-        print(f"IMAP login failed: {e}")
-        return None
-    
-
-def fetch_csv_attachments(mail,SENDER_EMAIL,SUBJECT):
-    """Fetch the most recent CSV attachment from emails with the specified subject from the sender."""
-    mail.select('"[Gmail]/All Mail"')  # Searches both inbox and archived emails
-    status, messages = mail.search(None, f'FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}"')
-
-    if status != "OK" or not messages[0]:
-        print("No emails found from the sender with the specified subject.")
-        return None
-
-    message_ids = messages[0].split()
-    latest_email_id = message_ids[-1]  # Get the ID of the last email
-
-    status, msg_data = mail.fetch(latest_email_id, "(RFC822)")
-    if status != "OK":
-        print("Error fetching email.")
-        return None
-
-    for response_part in msg_data:
-        if isinstance(response_part, tuple):
-            msg = email.message_from_bytes(response_part[1])
-
-            # Extract attachments
-            for part in msg.walk():
-                filename = part.get_filename()
-                if filename and filename.endswith(".csv"):
-                    attachment_data = part.get_payload(decode=True)
-                    return filename, attachment_data  # Return the first CSV attachment found
-
-    print("No CSV attachments found.")
-    return None
-
-
-def detect_delimiter(data):
-    """Detect the delimiter of a CSV file."""
-    sample = data.decode(errors="ignore").splitlines()[0]  # Read first line
-    sniffer = csv.Sniffer()
-    try:
-        return sniffer.sniff(sample).delimiter  # Auto-detect delimiter
-    except csv.Error:
-        return ","  # Default to comma
-
-
-def load_csv_dataframe(data):
-    """Load CSV data into a Pandas DataFrame, skipping metadata before 'Date'."""
-    try:
-        delimiter = detect_delimiter(data)
-        print(f"Detected delimiter: {delimiter}")  # Debugging step
-
-        # Read raw CSV data into a list of lines
-        raw_lines = data.decode(errors="ignore").splitlines()
-
-        # Find the first row where the first column is exactly "Date"
-        start_idx = next((i for i, line in enumerate(raw_lines) if line.strip().split(delimiter)[0] == "Date"), None)
-
-        if start_idx is None:
-            print("Error: 'Date' not found in the CSV.")
-            return None
-
-        # Read the CSV from the detected row onward
-        df = pd.read_csv(BytesIO(data), encoding="utf-8", engine="python", sep=delimiter, skiprows=start_idx)
-
-        return df
-
-    except Exception as e:
-        print(f"Error reading CSV: {e}")
-        return None
