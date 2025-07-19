@@ -333,6 +333,25 @@ def p161_get_report_results_df(access_token, report_id, result_id):
 
     return pd.DataFrame(all_data_rows)
 
+def get_p161_report(login, password, dimensions, metrics):
+    timeframe="last_30_days"
+    access_token, csrf_token = p161_authenticate(login, password)
+    report_id = p161_create_report(access_token, csrf_token, dimensions, metrics,timeframe)
+    result_id = p161_request_report_results(access_token, csrf_token, report_id)
+    time.sleep(10)
+    df_p161 = p161_get_report_results_df(access_token, report_id, result_id)
+    df_p161['network']='Match2One (Media)'
+    df_p161['Brand'] = df_p161['campaign_name'].str.split('_').str[0]
+    df_p161['Brand']=df_p161['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_p161['Brand']=df_p161['Brand'].apply(brand_clean_polish)
+    df_p161 = add_presale_to_brand(df_p161)
+    df_p161=df_columns_rename(df_p161)
+    df_p161['total_spend']=df_p161['total_cost'].astype(float)
+    df_p161['total_spend_campaign_currency']=df_p161['total_spend'].astype(float)
+    df_p161=df_p161[['date','network','Brand','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    df_p161['date'] = pd.to_datetime(df_p161['date'])
+    return df_p161
+
 
 # Match2One
 
