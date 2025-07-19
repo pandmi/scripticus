@@ -794,37 +794,27 @@ def ctrf_get_campaign_stats(token, url, start_date, end_date):
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Authorization": token}
-    
     payload = {
     "date_from": start_date,
     "date_to": end_date,
     "group_by": ["DATE", "CAMPAIGN"]}
-    
     # Make the POST request
     response = requests.post(url, headers=headers, json=payload)
-
     # Check the response status code and print the content of the response
     if response.status_code == 200:
         # Convert JSON object into DataFrame and extract "id" and "name" fields from "campaign" column
         df_ctrf = pd.json_normalize(response.json(), sep='_')
     else:
         return('Error:', response.status_code, response.text)
-
     df_ctrf['network']='Cointraffic (Media)'
     df_ctrf['Brand'] = df_ctrf['campaign_name'].str.split('_').str[1]
     df_ctrf['Brand']=df_ctrf['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
     df_ctrf['Brand']=df_ctrf['Brand'].apply(brand_clean_polish)
     df_ctrf = add_presale_to_brand(df_ctrf)
-
-
     df_ctrf=df_columns_rename(df_ctrf)
-
     df_ctrf['total_spend_campaign_currency']=df_ctrf['spent_budget'].astype(float)
     df_ctrf['total_spend']=df_ctrf['spent_budget'].astype(float)
-
-
     df_ctrf=df_ctrf[['date','network','Brand','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
-
     df_ctrf['date'] = pd.to_datetime(df_ctrf['date'])
     return df_ctrf
 
