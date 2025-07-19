@@ -679,6 +679,42 @@ def ha_get_campaign_reports(df_input, start_date, end_date, username, password, 
     return df
 
 
+def ha_get_campaign_stats(access_key, username, password, base_url, start_date, end_date):
+    df = ha_get_campaign_meta(base_url, username, password)
+
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+    all_data = pd.DataFrame()
+    current_date = start_date_dt
+
+    while current_date <= end_date_dt:
+        single_day = current_date.strftime("%Y-%m-%d")
+        df_hueads = ha_get_campaign_reports(df, single_day, single_day, username, password, base_url)
+        df_hueads['date'] = single_day
+        all_data = pd.concat([all_data, df_hueads], ignore_index=True)
+        current_date += timedelta(days=1)
+
+    df_hueads = all_data
+    df_hueads['network'] = 'Hue Ads (Media)'
+
+    if not df_hueads.empty and 'campaign_name' in df_hueads.columns:
+        df_hueads['Brand'] = df_hueads['campaign_name'].str.split('_').str[1]
+        df_hueads['Brand'] = (
+            df_hueads['Brand']
+            .str.replace(' ', '', regex=False)
+            .str.lower()
+            .apply(brand_cleanup)
+            .apply(brand_clean_polish)
+        )
+
+        df_hueads = add_presale_to_brand(df_hueads)
+        df_hueads = df_columns_rename(df_hueads)
+        df_hueads=df_hueads[['date','network','campaign_id', 'campaign_name','Brand','adv_impressions', 'adv_clicks', 'total_spend']]
+
+    return df_hueads
+
+
 # Help Functions
 
 
