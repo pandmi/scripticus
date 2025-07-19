@@ -243,6 +243,24 @@ def vzb_check_report_status(api_endpoint, access_token, advertiser_id, report_id
         
         time.sleep(5)  # Wait before checking again
 
+def vzb_get_campaign_stats(email, password, api_endpoint, start_date, end_date, dimensions,metrics,interval):
+    access_token, advertiser_id= vzb_get_access_token(email, password)
+    query_name=generate_query_name()
+    query_id=vzb_create_specific_report_query(api_endpoint, access_token, advertiser_id,start_date,end_date, dimensions,metrics,interval, query_name)
+    report_id= vzb_create_report(api_endpoint, access_token, advertiser_id, query_id)
+    report_link=vzb_check_report_status(api_endpoint, access_token, advertiser_id, report_id)
+    df_vz = pd.read_csv(report_link)
+
+    df_vz['network']='Datawrkz (Media)'
+    df_vz['Brand'] = df_vz['insertion_order'].str.split('_').str[1]
+    df_vz['Brand']=df_vz['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_vz['Brand']=df_vz['Brand'].apply(brand_clean_polish)
+    df_vz = add_presale_to_brand(df_vz, external_column='insertion_order')
+    df_vz=df_columns_rename(df_vz)
+    df_vz['total_spend']=df_vz['total_cost'].astype(float)
+    df_vz['total_spend_campaign_currency']=df_vz['total_spend'].astype(float)
+    df_vz=df_vz[['date','network','Brand','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    return df_vz
 
 
 # Plattform 161
