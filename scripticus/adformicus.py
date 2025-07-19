@@ -390,6 +390,59 @@ def get_m2o_data(name: str, token: str, request_data: dict) -> pd.DataFrame:
         raise Exception(f"Failed to fetch report data. Status code: {response.status_code}. Response: {response.text}")
 
 
+        
+def get_m2o_report(email, password, start_date, end_date):
+    token = authenticate_match2one(email, password)
+    token = token.replace('Bearer ', '')
+    request_data = {
+    "parameters": [
+        {
+            "key": "start_date",
+            "condition": "ge",
+            "value": start_date
+        },
+        {
+            "key": "end_date",
+            "condition": "lt",
+            "value": end_date
+        }
+    ],
+    "zoneId": "UTC"}
+
+    # name = 'accounts_daily_performance'
+    report_data = get_m2o_data('accounts_daily_performance', token, request_data)
+
+
+    request_data_lib = {
+        "parameters": [
+
+        ]
+    }
+    # name='accounts_dictionary'
+    ac_dict = get_m2o_data('accounts_dictionary', token, request_data_lib)
+    ac_dict.columns=['account_id', 'account_name', 'account_status', 'created_at']
+
+    ac_dict=ac_dict[['account_id', 'account_name', 'account_status']]
+
+    df_m2o_=pd.merge(report_data, ac_dict,  how='left', left_on=['account_id'], right_on=['account_id'])
+    
+    # name='campaigns_dictionary'
+    cmp_dict = get_m2o_data('campaigns_dictionary', token, request_data_lib)
+
+    cmp_dict.columns=['campaign_id', 'campaign_name', 'campaign_status', 'campaign_created_at', 'account_id']
+    df_m2o=pd.merge(df_m2o_, cmp_dict,  how='left', left_on=['account_id', 'campaign_id'], right_on=['account_id', 'campaign_id'])
+    df_m2o['network']='Match2One (Media)'
+    df_m2o['Brand'] = df_m2o['campaign_name'].str.split('_').str[0]
+    df_m2o['Brand']=df_m2o['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_m2o['Brand']=df_m2o['Brand'].apply(brand_clean_polish)
+    df_m2o = add_presale_to_brand(df_m2o,  external_column='account_name')
+    df_m2o=df_columns_rename(df_m2o)
+    df_m2o['total_spend_campaign_currency']=df_m2o['total_spend'].astype(float)
+    df_m2o['total_spend']=df_m2o['total_spend'].astype(float)
+    df_m2o=df_m2o[['date','network','Brand','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    return df_m2o
+    
+
 
 # Coinzilla
 
