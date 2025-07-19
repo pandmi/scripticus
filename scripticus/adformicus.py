@@ -679,7 +679,7 @@ def ha_get_campaign_reports(df_input, start_date, end_date, username, password, 
     return df
 
 
-def ha_get_campaign_stats(access_key, username, password, base_url, start_date, end_date):
+def ha_get_campaign_stats(username, password, base_url, start_date, end_date):
     df = ha_get_campaign_meta(base_url, username, password)
 
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
