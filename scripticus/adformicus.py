@@ -667,6 +667,42 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date)
     return df_cz_ps
 
 
+# Personally
+
+def pers_get_campaign_stats(api_key, adv_id, start_date, end_date):
+    f_start_date = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    f_end_date = datetime.strptime(end_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    
+    base_url = "http://reporting.personaly.bid/rtb/singular"
+    params = {
+        'startDate': f_start_date,  # replace with actual start date in dd-mm-yyyy format
+        'endDate': f_end_date,       # replace with actual end date in dd-mm-yyyy format
+        'advertiserId': adv_id,   # replace with your advertiser ID
+        'apiKey': api_key,         # replace with your API key
+        'groupBy': 'date'              # grouping by date to get daily stats
+    }
+
+    response = requests.get(base_url, params=params)
+    data = response.json()
+
+    df_pers = pd.DataFrame(data)
+    df_pers['network']='Personaly'
+
+    df_pers['Brand'] = df_pers['campaign_name'].str.split('_').str[0]
+
+    df_pers['Brand']=df_pers['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_pers['Brand']=df_pers['Brand'].apply(brand_clean_polish)
+    df_pers = add_presale_to_brand(df_pers, external_column='campaign_name')
+    df_pers=df_columns_rename(df_pers)
+    df_pers['total_spend']=df_pers['total_spend'].astype(float)
+    df_pers['total_spend_campaign_currency']=df_pers['total_spend'].astype(float)
+    df_pers['adv_impressions']=df_pers['impressions']
+
+    df_pers['adv_clicks']=df_pers['clicks']
+    df_pers['adv_installs']=df_pers['installs']
+    df_pers=df_pers[['date','network','Brand','adv_impressions','adv_clicks','adv_installs','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    df_pers['date'] = pd.to_datetime(df_pers['date'], format="%d-%m-%Y")
+    return df_pers
 
 
 # Hueads
