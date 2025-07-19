@@ -497,7 +497,7 @@ def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token
         report_data = status_response.json()
         flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
         df = pd.DataFrame(flattened_data).T 
-        df = df.apply(pd.to_numeric, errors='ignore')
+        df = df.apply(pd.to_numeric, errors='coerce')
         
         # return status_response.json()
         return df
