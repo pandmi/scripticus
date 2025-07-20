@@ -1728,6 +1728,109 @@ def fetch_moloko_report(api_key, ad_account_id, start_date, end_date, token_url,
     
     return df
 
+def mol_get_brand_stats(API_KEY, AD_ACCOUNT_ID, start_date, end_date):
+    # # === CONFIGURATION ===
+    TOKEN_URL = "https://api.moloco.cloud/cm/v1/auth/tokens"
+
+    REPORT_URL = f"https://api.moloco.cloud/cm/v1/reports?ad_account_id={AD_ACCOUNT_ID}"
+
+    # === STEP 1: GET ACCESS TOKEN ===
+
+    token_payload = {
+        "api_key": API_KEY
+    }
+    token_headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    token_response = requests.post(TOKEN_URL, headers=token_headers, json=token_payload)
+
+    if token_response.status_code != 200:
+        raise Exception(f"❌ Failed to get token: {token_response.text}")
+
+    access_token = token_response.json()["token"]
+
+    # === STEP 2: REQUEST REPORT ===
+    report_payload = {
+        "date_range": {
+            "start": start_date,
+            "end": end_date
+        },
+        "ad_account_id": AD_ACCOUNT_ID,
+        "dimensions": ["DATE","CAMPAIGN"]
+    }
+
+    report_headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    report_response = requests.post(REPORT_URL, json=report_payload, headers=report_headers)
+
+
+    if report_response.status_code != 202:
+        raise Exception(f"❌ Report request failed: {report_response.text}")
+
+    # === STEP 3: POLL UNTIL REPORT IS READY ===
+    report_status_url = report_response.json()["status"]
+
+    timeout = 120  # seconds
+    start_time = time.time()
+
+    while True:
+        status_response = requests.get(report_status_url, headers=report_headers)
+        status_json = status_response.json()
+
+        if "location_csv" in status_json:
+            report_download_url = status_json["location_csv"]
+            break
+
+        elif time.time() - start_time > timeout:
+            raise Exception("⏳ Timed out waiting for report.")
+        else:
+            time.sleep(5)
+
+
+    # === STEP 4: DOWNLOAD REPORT WITHOUT AUTH HEADER ===
+    download_response = requests.get(report_download_url)  # No headers here!
+
+    if download_response.status_code == 200:
+        csv_data = download_response.content.decode("utf-8")
+        df_mol = pd.read_csv(StringIO(csv_data))  
+        df_mol=df_columns_rename(df_mol)
+        df_mol['date']=df_mol['date']
+        df_mol['Brand'] = df_mol['Campaign_Title']
+        df_mol['Brand']=df_mol['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+        df_mol['Brand']=df_mol['Brand'].apply(brand_clean_polish)
+        df_mol = add_presale_to_brand(df_mol,  external_column='Brand')
+        df_mol=df_mol.fillna(0)
+        df_mol['impressions'] = df_mol['impressions']
+        df_mol['impressions'] = pd.to_numeric(df_mol['impressions'], errors='coerce')  # Convert to float, replacing errors with NaN
+        df_mol['impressions'] = df_mol['impressions'].fillna(0).astype(int)  # Fill NaNs with 0 and convert to int
+        df_mol['adv_impressions'] = df_mol['impressions']
+        df_mol['adv_impressions']=df_mol['impressions'].astype(int)
+        df_mol['clicks'] = df_mol['Clicks']
+        df_mol['clicks'] = df_mol['clicks'].replace('', '0')  # Replace empty strings with '0'
+        df_mol['clicks'] = df_mol['clicks'].fillna(0)  # Replace NaNs with 0
+        df_mol['adv_clicks'] = df_mol['clicks'].astype(int)  # Convert to int
+        df_mol['total_spend']=df_mol['Spend']
+        df_mol['total_spend'] = df_mol['total_spend'].replace('n/a', 0)
+        df_mol['total_spend']=df_mol['total_spend'].replace('-', np.nan)
+        df_mol['total_spend']=df_mol['total_spend'].replace('N/A', 0)
+        df_mol['total_spend']=df_mol['total_spend'].astype(float)
+        df_mol['total_spend_campaign_currency']=df_mol['total_spend']
+        df_mol['network']='Moloco'
+        df_mol=df_mol[['date','network','Brand','adv_clicks','adv_impressions','total_spend', 'total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    
+      
+    else:
+        return(f"❌ Failed to download report: {download_response.status_code}. Response: {download_response.text}")
+    return df_mol
+
+
+
 
 # Exoclick
 
