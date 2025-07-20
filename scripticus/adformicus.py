@@ -26,6 +26,7 @@ import pprint
 import requests
 import seaborn as sns
 import time
+import ast
 
 # Singular
 
