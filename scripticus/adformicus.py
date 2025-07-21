@@ -2037,7 +2037,7 @@ def parse_mixed_dates(date_str):
         return pd.to_datetime(date_str, format="%m/%d/%y")  # Try two-digit year    
     
     
-def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell, start_date, end_date):
+def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell):
     mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
     csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
     if csv_attachment:
@@ -2053,7 +2053,7 @@ def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell
             df_cmc['Total impressions']=df_cmc['Total impressions'].str.replace(',', '')
             df_cmc['Total impressions'] = df_cmc['Total impressions'].replace('n/a', 0)
             df_cmc['Total clicks']=df_cmc['Total clicks'].str.replace(',', '')
-            df_cmc['Total clickss'] = df_cmc['Total clicks'].replace('n/a', 0)
+            df_cmc['Total clicks'] = df_cmc['Total clicks'].replace('n/a', 0)
             df_cmc['impressions_cmc']=df_cmc['Total impressions'].astype(int)
             df_cmc['clicks_cmc']=df_cmc['Total clicks'].astype(int)
             df_cmc= df_cmc[(~df_cmc['Line item'].str.contains('Coin.Network'))]
@@ -2061,14 +2061,15 @@ def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell
             df_cmc['total_spend_cmc']= np.where(df_cmc['Line item'].str.contains('US_Incremental'),  (df_cmc['impressions_cmc']/1000)*3.5, df_cmc['total_spend_cmc'])
             df_cmc['total_spend_cmc']= np.where(df_cmc['Creative'].str.contains('CoinPoker|InstantCasino|LuckyBlock|TG-Casino'),  (df_cmc['impressions_cmc']/1000)*5, df_cmc['total_spend_cmc'])
             df_cmc['date'] = df_cmc['date'].astype(str).apply(parse_mixed_dates)
-            df_cmc['date'] = df_cmc['date'].dt.strftime('%Y-%m-%d')  # Convert to standard format
-            df_cmc=df_cmc[(~df_cmc['Line item'].str.contains('Direct'))&(df_cmc['date']>=start_date)&(df_cmc['date']<=end_date)]
+            df_cmc=df_cmc[(~df_cmc['Line item'].str.contains('Direct'))]
             df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc', 'total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-
+            mail.logout()
             return df_cmc
         else:
+            mail.logout()
             return "Failed to parse CSV."
     else:
+        mail.logout()
         return "No CSV attachments found."
 
 
@@ -2226,7 +2227,7 @@ def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_wi
         return "No report link found."
 
 
-def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell, start_date, end_date):
+def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell):
     mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
     csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
     if csv_attachment:
@@ -2252,13 +2253,13 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_c
             df_cmc['clicks_cmc']=df_cmc['clicks']
             df_cmc['total_spend_cmc']=df_cmc['total_spend']
             df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-            df_cmc['date'] = pd.to_datetime(df_cmc['date'])
-            df_cmc['date'] = df_cmc['date'].dt.strftime('%Y-%m-%d')
-            df_cmc=df_cmc[(df_cmc['date']>=start_date)&(df_cmc['date']<=end_date)]
+            mail.logout()
             return df_cmc
         else:
+            mail.logout()
             return "Failed to parse CSV."
     else:
+        mail.logout()
         return "No CSV attachments found."
     
 
