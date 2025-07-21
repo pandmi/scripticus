@@ -2227,3 +2227,39 @@ def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_wi
         return "No report link found."
 
 
+def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell, start_date, end_date):
+    mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+    csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
+    if csv_attachment:
+        filename, data = csv_attachment
+        df_cmc = load_csv_dataframe(data, first_cell)
+        if df_cmc is not None:
+            df_cmc['Brand']=df_cmc['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+            df_cmc['Brand_creative']=df_cmc['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+            df_cmc['Brand'] = np.where(~df_cmc['Brand'].str.contains('gamingbutton|sponsoredsearch'),  df_cmc['Brand'], df_cmc['Brand_creative'])
+            df_cmc['network'] = np.where(df_cmc['Line item'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
+            df_cmc['impressions']=df_cmc['Ad server impressions']
+            df_cmc['date']= pd.to_datetime(df_cmc['Date'], format="%m/%d/%y", errors="coerce").dt.strftime("%Y-%m-%d")
+            df_cmc['impressions']=df_cmc['impressions'].str.replace(',', '')
+            df_cmc['impressions'] = df_cmc['impressions'].replace('n/a', 0)
+            df_cmc['clicks']=df_cmc['Ad server clicks'].str.replace(',', '')
+            df_cmc['clicks'] = df_cmc['clicks'].replace('n/a', 0)
+            df_cmc['impressions']=df_cmc['impressions'].astype(int)
+            df_cmc['clicks']=df_cmc['clicks'].astype(int)
+            df_cmc['impressions_cmc']=df_cmc['impressions'].astype(int)
+            df_cmc['clicks_cmc']=df_cmc['clicks'].astype(int)
+            df_cmc=calculate_cpm_spend(df_cmc)
+            df_cmc['impressions_cmc']=df_cmc['impressions']
+            df_cmc['clicks_cmc']=df_cmc['clicks']
+            df_cmc['total_spend_cmc']=df_cmc['total_spend']
+            df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
+            df_cmc['date'] = pd.to_datetime(df_cmc['date'])
+            df_cmc['date'] = df_cmc['date'].dt.strftime('%Y-%m-%d')
+            df_cmc=df_cmc[(df_cmc['date']>=start_date)&(df_cmc['date']<=end_date)]
+            return df_cmc
+        else:
+            return "Failed to parse CSV."
+    else:
+        return "No CSV attachments found."
+    
+
