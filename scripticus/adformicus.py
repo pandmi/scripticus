@@ -1943,4 +1943,287 @@ class ExoClickAPI:
     def get_partner(self, value):
         return {"Enabled": "1", "Disabled": "0"}.get(value)
 
+# Mail operation
+
+def connect_to_gmail(EMAIL_USER, EMAIL_PASS):
+    IMAP_SERVER = "imap.gmail.com"
+    IMAP_PORT = 993
+    
+    """Connect to Gmail using IMAP."""
+    try:
+        mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+        mail.login(EMAIL_USER, EMAIL_PASS)
+        return mail
+    except imaplib.IMAP4.error as e:
+        return str(e)
+
+def fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT):
+    """Fetch the most recent CSV attachment from emails with the specified subject from the sender."""
+    mail.select('"[Gmail]/All Mail"')  # Searches both inbox and archived emails
+    status, messages = mail.search(None, f'FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}"')
+
+    if status != "OK" or not messages[0]:
+        return "No emails found from the sender with the specified subject."
+
+    message_ids = messages[0].split()
+    latest_email_id = message_ids[-1]  # Get the ID of the last email
+
+    status, msg_data = mail.fetch(latest_email_id, "(RFC822)")
+    if status != "OK":
+        return "Error fetching email."
+
+    for response_part in msg_data:
+        if isinstance(response_part, tuple):
+            msg = email.message_from_bytes(response_part[1])
+
+            # Extract attachments
+            for part in msg.walk():
+                filename = part.get_filename()
+                if filename and filename.endswith(".csv"):
+                    attachment_data = part.get_payload(decode=True)
+                    return filename, attachment_data  # Return the first CSV attachment found
+
+    return "No CSV attachments found."
+
+
+def detect_delimiter(data):
+    """Detect the delimiter of a CSV file."""
+    sample = data.decode(errors="ignore").splitlines()[0]  # Read first line
+    sniffer = csv.Sniffer()
+    try:
+        return sniffer.sniff(sample).delimiter  # Auto-detect delimiter
+    except csv.Error:
+        return ","  # Default to comma
+
+def load_csv_dataframe(data,first_cell):
+    """Load CSV data into a Pandas DataFrame, skipping metadata before 'Date'."""
+    try:
+        delimiter = detect_delimiter(data)
+        # Read raw CSV data into a list of lines
+        raw_lines = data.decode(errors="ignore").splitlines()
+
+        # Find the first row where the first column is exactly "Date"
+        start_idx = next((i for i, line in enumerate(raw_lines) if line.strip().split(delimiter)[0] == first_cell), None)
+
+        if start_idx is None:
+            return "Error: 'Date' not found in the CSV."
+
+        # Read the CSV from the detected row onward
+        df = pd.read_csv(BytesIO(data), encoding="utf-8", engine="python", sep=delimiter, skiprows=start_idx)
+
+        return df
+
+    except Exception as e:
+        return str(e)
+
+    
+def gmail_get_csv_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT,first_cell):
+    mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+    csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
+    if csv_attachment:
+        filename, data = csv_attachment
+        df_cmc = load_csv_dataframe(data,first_cell)
+        if df_cmc is not None:
+            return df_cmc
+        else:
+            return "Failed to parse CSV."
+    else:
+        return "No CSV attachments found."
+    
+def parse_mixed_dates(date_str):
+    try:
+        return pd.to_datetime(date_str, format="%m/%d/%Y")  # Try four-digit year
+    except ValueError:
+        return pd.to_datetime(date_str, format="%m/%d/%y")  # Try two-digit year    
+    
+    
+def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell, start_date, end_date):
+    mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+    csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
+    if csv_attachment:
+        filename, data = csv_attachment
+        df_cmc = load_csv_dataframe(data, first_cell)
+        if df_cmc is not None:
+            df_cmc=df_cmc[df_cmc['Date']!='Total']
+            df_cmc['network']='CoinMarketCap (Media)'
+            df_cmc['Brand']=df_cmc['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+            df_cmc['Brand']=df_cmc['Brand'].apply(brand_clean_polish)
+            df_cmc = add_presale_to_brand(df_cmc, external_column='Creative')
+            df_cmc=df_columns_rename(df_cmc)
+            df_cmc['Total impressions']=df_cmc['Total impressions'].str.replace(',', '')
+            df_cmc['Total impressions'] = df_cmc['Total impressions'].replace('n/a', 0)
+            df_cmc['Total clicks']=df_cmc['Total clicks'].str.replace(',', '')
+            df_cmc['Total clickss'] = df_cmc['Total clicks'].replace('n/a', 0)
+            df_cmc['impressions_cmc']=df_cmc['Total impressions'].astype(int)
+            df_cmc['clicks_cmc']=df_cmc['Total clicks'].astype(int)
+            df_cmc= df_cmc[(~df_cmc['Line item'].str.contains('Coin.Network'))]
+            df_cmc['total_spend_cmc']= (df_cmc['impressions_cmc']/1000)*5
+            df_cmc['total_spend_cmc']= np.where(df_cmc['Line item'].str.contains('US_Incremental'),  (df_cmc['impressions_cmc']/1000)*3.5, df_cmc['total_spend_cmc'])
+            df_cmc['total_spend_cmc']= np.where(df_cmc['Creative'].str.contains('CoinPoker|InstantCasino|LuckyBlock|TG-Casino'),  (df_cmc['impressions_cmc']/1000)*5, df_cmc['total_spend_cmc'])
+            df_cmc['date'] = df_cmc['date'].astype(str).apply(parse_mixed_dates)
+            df_cmc['date'] = df_cmc['date'].dt.strftime('%Y-%m-%d')  # Convert to standard format
+            df_cmc=df_cmc[(~df_cmc['Line item'].str.contains('Direct'))&(df_cmc['date']>=start_date)&(df_cmc['date']<=end_date)]
+            df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc', 'total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
+
+            return df_cmc
+        else:
+            return "Failed to parse CSV."
+    else:
+        return "No CSV attachments found."
+
+
+    
+import pandas as pd
+import requests
+from io import StringIO
+import imaplib
+import email
+from datetime import datetime
+import pytz
+import base64
+
+def download_csv_to_dataframe(url):
+    try:
+        # Send a request to fetch the CSV content
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise an error for bad responses (e.g., 404, 500)
+        
+        # Convert the response content to a DataFrame
+        csv_data = StringIO(response.text)
+        lines = csv_data.getvalue().strip().split('\n')
+
+        # Find the header line starting with 'Date'
+        header_line_index = next((i for i, line in enumerate(lines) if line.startswith('Date')), 0)
+        header = lines[header_line_index].split(',')
+
+        # Read the DataFrame using only the relevant data
+        data_lines = '\n'.join(lines[header_line_index + 1:])
+        df = pd.read_csv(StringIO(data_lines), names=header, parse_dates=['Date'])
+
+        # Ensure the 'Date' column is sorted (if not already)
+        df = df.sort_values(by='Date')
+        
+        # Drop the last row instead of all rows with the most recent date
+        df = df.iloc[:-1]
+
+        return df
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error for {url}: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request error for {url}: {req_err}")
+    except pd.errors.EmptyDataError:
+        print(f"No data found at {url}")
+    except KeyError:
+        print(f"Missing 'Date' column in {url}")
+    return None
+
+
+
+
+def fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with):
+    try:
+        today_str = datetime.now(pytz.UTC).strftime("%d-%b-%Y")
+        mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+        mail.select('"[Gmail]/All Mail"')
+
+        # Search for emails from the sender since today
+        status, data = mail.search(None, f'(FROM "{SENDER_EMAIL}" SINCE "{today_str}")')
+        if status != "OK":
+            return None
+
+        for num in reversed(data[0].split()):
+            status, msg_data = mail.fetch(num, '(RFC822)')
+            if status != "OK":
+                continue
+
+            msg = email.message_from_bytes(msg_data[0][1])
+            email_date = email.utils.parsedate_to_datetime(msg["Date"]).astimezone(pytz.UTC).date()
+            today = datetime.now(pytz.UTC).date()
+            if email_date != today:
+                continue
+
+            # Walk through message parts
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type in ["text/plain", "text/html"]:
+                    try:
+                        body = part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8", errors="ignore")
+                        for line in body.splitlines():
+                            if line.strip().startswith(link_starts_with):
+                                return line.strip()
+                    except Exception:
+                        continue
+        return None
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+
+def fetch_latest_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with):
+    try:
+        mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+        mail.select('"[Gmail]/All Mail"')
+
+        # Search for all emails from the sender (no date filtering)
+        status, data = mail.search(None, f'(FROM "{SENDER_EMAIL}")')
+        if status != "OK" or not data or not data[0]:
+            return None
+
+        message_ids = data[0].split()
+
+        # Process newest messages first
+        for msg_id in reversed(message_ids):
+            status, msg_data = mail.fetch(msg_id, '(RFC822)')
+            if status != "OK":
+                continue
+
+            msg = email.message_from_bytes(msg_data[0][1])
+
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type in ["text/plain", "text/html"]:
+                    try:
+                        body = part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8", errors="ignore")
+                        for line in body.splitlines():
+                            if line.strip().startswith(link_starts_with):
+                                return line.strip()
+                    except Exception:
+                        continue
+
+        return None
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with, start_date, end_date):
+    report_link = fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with)
+    if report_link:
+        df_imps_cgk = download_csv_to_dataframe(report_link)
+        if df_imps_cgk is not None:
+            df_imps_cgk['Brand'] = df_imps_cgk.apply(lambda row: "coinpoker" if row['Advertiser'] == "Finixio - CoinPoker" 
+                else brand_clean_polish(brand_cleanup(row['Campaign'].replace(' ', '').lower())), axis=1)
+
+            df_imps_cgk['Brand_creative']=df_imps_cgk['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+            df_imps_cgk['Brand'] = np.where(~df_imps_cgk['Brand'].str.contains('gamingbutton|sponsoredsearch'),  df_imps_cgk['Brand'], df_imps_cgk['Brand_creative'])
+
+            df_imps_cgk['network'] = np.where(df_imps_cgk['Campaign'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
+            df_imps_cgk['impressions']=df_imps_cgk['Impressions']
+            df_imps_cgk['date']=df_imps_cgk['Date']
+            df_imps_cgk=calculate_cpm_spend(df_imps_cgk)
+            df_imps_cgk['impressions_cmc']=df_imps_cgk['impressions']
+            df_imps_cgk['clicks_cmc']=df_imps_cgk['Clicks']
+
+            df_imps_cgk['total_spend_cmc']=df_imps_cgk['total_spend']
+            df_imps_cgk=df_imps_cgk[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
+            df_imps_cgk['date'] = pd.to_datetime(df_imps_cgk['date'])
+            df_imps_cgk=df_imps_cgk[(df_imps_cgk['date']>=start_date)&(df_imps_cgk['date']<=end_date)]
+            return df_imps_cgk
+        else:
+            return "Failed to parse report link."
+    else:
+        return "No report link found."
+
 
