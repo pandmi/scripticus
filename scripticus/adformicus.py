@@ -2198,7 +2198,7 @@ def fetch_latest_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_w
         print(f"Error: {e}")
         return None
     
-def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with, start_date, end_date):
+def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with):
     report_link = fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with)
     if report_link:
         df_imps_cgk = download_csv_to_dataframe(report_link)
@@ -2218,8 +2218,7 @@ def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_wi
 
             df_imps_cgk['total_spend_cmc']=df_imps_cgk['total_spend']
             df_imps_cgk=df_imps_cgk[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-            df_imps_cgk['date'] = pd.to_datetime(df_imps_cgk['date'])
-            df_imps_cgk=df_imps_cgk[(df_imps_cgk['date']>=start_date)&(df_imps_cgk['date']<=end_date)]
+            
             return df_imps_cgk
         else:
             return "Failed to parse report link."
