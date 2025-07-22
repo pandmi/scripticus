@@ -2064,7 +2064,7 @@ def fetch_twitter_report(client, start_date, end_date):
 
 # Facebook
 def fetch_meta_report(client, start_date, end_date):
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.meta_campaigns`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.meta_campaigns_raw`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_fb = client.query(query).result().to_dataframe()
     df_fb=df_columns_rename(df_fb)
     df_fb['date'] = pd.to_datetime(df_fb['date'])
@@ -2093,7 +2093,7 @@ def fetch_meta_report(client, start_date, end_date):
 
 # Facebook
 def fetch_etherscan_report(client, start_date, end_date):
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_placements`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_placements_raw`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_etherscan = client.query(query).result().to_dataframe()
     df_etherscan=df_columns_rename(df_etherscan)
     df_etherscan['date'] = pd.to_datetime(df_etherscan['date'])
