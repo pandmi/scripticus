@@ -2126,6 +2126,8 @@ def fetch_etherscan_report(client, start_date, end_date):
 
     return df_etherscan
 
+# FIX Spend
+
 
 import calendar
 
