@@ -2127,6 +2127,85 @@ def fetch_etherscan_report(client, start_date, end_date):
     return df_etherscan
 
 
+import calendar
+
+def days_in_month(date):
+    return calendar.monthrange(date.year, date.month)[1]
+
+def fetch_fix_spend(client, start_date, end_date):
+    query = f"SELECT Network as network , Monthly_budget as monthly_budget FROM `dwh-landing-v1.paid_media_network_raw.fix_budgets`WHERE Start_Date <= '{start_date}' and End_Date >='{end_date}'"
+    df_fix_budget_rest = client.query(query).result().to_dataframe()
+    df_fix_budget_rest['network']=df_fix_budget_rest['network'].str.replace('Cynes.com', 'cnyes.com (Media)')
+    start_date_dt = pd.to_datetime(start_date)
+    df_fix_budget_rest['days_in_month'] = start_date_dt.days_in_month
+    df_fix_budget_rest['daily_budget'] = df_fix_budget_rest['monthly_budget'] / df_fix_budget_rest['days_in_month']
+    fix_networks = df_fix_budget_rest.network.unique()
+    fix_networks_sql = ", ".join(f"'{n}'" for n in fix_networks)
+    
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
+    df_fs_corr_dsp = client.query(query).result().to_dataframe()
+    df_fs_corr_fix_dict=pd.merge(df_fs_corr_dsp, df_fix_budget_rest,  how='left', left_on=['network'], right_on=['network'])
+    df_fs_corr_fix_dict=df_fs_corr_fix_dict[(df_fs_corr_fix_dict['monthly_budget']>0)&(df_fs_corr_fix_dict['impressions']>10)]
+    df_fs_corr_fix_dict['total_impressions'] = df_fs_corr_fix_dict.groupby([ 'date','network'])['impressions'].transform('sum')
+    df_fs_corr_fix_dict['fix_allocated_budget'] = (df_fs_corr_fix_dict['impressions'] / df_fs_corr_fix_dict['total_impressions']) * df_fs_corr_fix_dict['daily_budget']
+    df_fs_corr_fix_dict=df_fs_corr_fix_dict[['date','network', 'Brand', 'fix_allocated_budget']]
+    df_fs_corr_fix_dict.columns=['date','network','Brand', 'fix_budget']
+    df_fs_corr_fix_dict['date'] = pd.to_datetime(df_fs_corr_fix_dict['date'], errors='coerce')  # Convert to datetime
+    df_fs_corr_fix_dict['date']=df_fs_corr_fix_dict['date'].dt.strftime('%Y-%m-%d')    
+    
+    stop_clients="'Casinos - APAC','Casinos - Americas','Crypto Presales - APAC','Crypto Presales - Shared Tracking - Global','Casinos - Shared Tracking'"
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_banners_dexscreener`WHERE date >= '{start_date}' and date <='{end_date}' and client NOT IN ({stop_clients})"
+    final_df = client.query(query).result().to_dataframe()
+    final_df['Brand']=final_df['campaign'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+    df_dex_excl=final_df[final_df['banner'].str.contains('hotbar', case=False, na=False)]
+    df_dex_fix=final_df[final_df['banner'].str.contains('search|homepage|heavyusers|serach', case=False, na=False)]
+    df_dex_fix['date'] = pd.to_datetime(df_dex_fix['date'], errors='coerce')  # Convert to datetime
+    df_dex_fix['date']=df_dex_fix['date'].dt.strftime('%Y-%m-%d')
+   
+    df_dex_fix_ds=df_dex_fix[['date','network','Brand','impressions']].groupby(['date','network','Brand']).sum().reset_index()
+    df_fs_corr_fix_dict_dex=pd.merge(df_dex_fix_ds, df_fix_budget_rest,  how='left', left_on=['network'], right_on=['network'])
+    df_fs_corr_fix_dict_dex=df_fs_corr_fix_dict_dex[(df_fs_corr_fix_dict_dex['monthly_budget']>0)&(df_fs_corr_fix_dict_dex['impressions']>10000)]
+    df_fs_corr_fix_dict_dex['total_impressions'] = df_fs_corr_fix_dict_dex.groupby([ 'date','network'])['impressions'].transform('sum')
+    df_fs_corr_fix_dict_dex['fix_allocated_budget'] = (df_fs_corr_fix_dict_dex['impressions'] / df_fs_corr_fix_dict_dex['total_impressions']) * df_fs_corr_fix_dict_dex['daily_budget']
+    df_fs_corr_fix_dict_dex=df_fs_corr_fix_dict_dex[['date','network', 'Brand', 'fix_allocated_budget','impressions']]
+    df_fs_corr_fix_dict_dex.columns=['date','network','Brand','fix_budget', 'impressions']
+    df_fs_corr_fix_dict_final = pd.concat([df_fs_corr_fix_dict, df_fs_corr_fix_dict_dex], ignore_index=True)
+
+    final_df=final_df[~final_df['banner'].str.contains('hotbar|search|homepage|heavyusers|serach', case=False, na=False)]
+    final_df['banner_spend']=(final_df['impressions']/1000)*5
+    final_df=df_columns_rename(final_df)
+    final_df['Brand']=final_df['campaign_name'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+    final_df = add_presale_to_brand(final_df)
+    final_df['Brand']=final_df['Brand'].str.replace('tonaldtrumps', 'tonaldtrump')
+    final_df_ds=final_df[['date','network','Brand','banner_spend']].groupby(['date','network', 'Brand']).sum().reset_index()
+    final_df_ds['date'] = pd.to_datetime(final_df_ds['date'], errors='coerce')
+    final_df_ds['date'] = final_df_ds['date'].dt.strftime('%Y-%m-%d')
+
+    df_dex_excl=df_columns_rename(df_dex_excl)
+    df_dex_excl['Brand']=df_dex_excl['campaign_name'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+    df_dex_excl = add_presale_to_brand(df_dex_excl)
+    df_dex_excl['Brand']=df_dex_excl['Brand'].str.replace('tonaldtrumps', 'tonaldtrump')
+    df_dex_excl=df_dex_excl[['date','network','Brand','impressions','clicks' ]].groupby(['date','network', 'Brand']).sum().reset_index()
+    df_dex_excl.columns=['date', 'network', 'Brand', 'del_impressions', 'del_clicks']
+    df_dex_excl['date'] = pd.to_datetime(df_dex_excl['date'], errors='coerce')
+    df_dex_excl['date'] = df_dex_excl['date'].dt.strftime('%Y-%m-%d')
+
+    final_df_ds_fin=pd.merge(df_dex_excl, final_df_ds,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_gt = final_df_ds.merge(df_dex_excl, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_gt = diff_df_gt.drop('_merge', axis=1)
+    final_df_ds_fin = pd.concat([final_df_ds_fin, diff_df_gt], ignore_index=True)
+
+    df_fs_corr_fix_dictgt=pd.merge(df_fs_corr_fix_dict_final, final_df_ds_fin,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_gt = final_df_ds_fin.merge(df_fs_corr_fix_dict_final, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_gt = diff_df_gt.drop('_merge', axis=1)
+    df_fs_corr_fix_dictgt = pd.concat([df_fs_corr_fix_dictgt, diff_df_gt], ignore_index=True)
+    df_fs_corr_fix_dictgt = df_fs_corr_fix_dictgt.fillna(0)
+    df_fs_corr_fix_dictgt['fix_budget']=df_fs_corr_fix_dictgt['fix_budget']+df_fs_corr_fix_dictgt['banner_spend']
+    df_fs_corr_fix_dictgt=df_fs_corr_fix_dictgt[['date', 'network', 'Brand', 'fix_budget', 'del_impressions','del_clicks']]
+    return df_fs_corr_fix_dictgt
+
+
+
 # Mail operation
 
 def connect_to_gmail(EMAIL_USER, EMAIL_PASS):
