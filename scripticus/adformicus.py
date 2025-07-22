@@ -2301,7 +2301,6 @@ def parse_mixed_dates(date_str):
     except ValueError:
         return pd.to_datetime(date_str, format="%m/%d/%y")  # Try two-digit year    
     
-    
 def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell):
     mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
     csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
@@ -2328,13 +2327,10 @@ def gmail_get_cmc_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell
             df_cmc['date'] = df_cmc['date'].astype(str).apply(parse_mixed_dates)
             df_cmc=df_cmc[(~df_cmc['Line item'].str.contains('Direct'))]
             df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc', 'total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-            mail.logout()
             return df_cmc
         else:
-            mail.logout()
             return "Failed to parse CSV."
     else:
-        mail.logout()
         return "No CSV attachments found."
 
 
@@ -2518,13 +2514,10 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_c
             df_cmc['clicks_cmc']=df_cmc['clicks']
             df_cmc['total_spend_cmc']=df_cmc['total_spend']
             df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-            mail.logout()
             return df_cmc
         else:
-            mail.logout()
             return "Failed to parse CSV."
     else:
-        mail.logout()
         return "No CSV attachments found."
 
 
