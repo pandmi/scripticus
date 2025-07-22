@@ -2526,5 +2526,260 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_c
     else:
         mail.logout()
         return "No CSV attachments found."
+
+
+# Report Daily Performance
+
+def fill_vertical(row, vertical_mapping):
+    if pd.isna(row['Vertical']) or row['Vertical'] == 0:
+        return vertical_mapping.get(row['Brand'], None)
+    return row['Vertical']
+
+def cl_brand_report(client, start_date, end_date):
+    # 1. Adform  Data
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fs_corr = client.query(query).result().to_dataframe()
+   
+    # 2. DSP spend data 
+    # Coinzilla
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_juhamegadice_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz_ps = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_mattgascoigne_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz = client.query(query).result().to_dataframe()
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_paidmedia_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz_pm = client.query(query).result().to_dataframe()
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_icpaidmedia_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz_ic = client.query(query).result().to_dataframe()
+    df_cz_fin = pd.concat([df_cz_ps,df_cz,df_cz_pm, df_cz_ic], ignore_index=True)
+    df_cz_fin['date'] = pd.to_datetime(df_cz_fin['date'])
+    df_cz_psf=df_cz_fin[['date','network','Brand','total_spend']].groupby(['date','network','Brand']).sum().reset_index()
+    df_cz_psf['total_spend_campaign_currency']=df_cz_psf['total_spend']
+    query = f"SELECT * FROM `dwh-landing-v1.exchange_rates.currency_api_usd_daily`WHERE Date >= '{start_date}' and Date <='{end_date}'"
+    currency_rates = client.query(query).result().to_dataframe()
+    eur_usd_today=currency_rates[currency_rates['To_Currency']=='EUR']
+    eur_usd_today=eur_usd_today[['Date','Rate']]
+    eur_usd_today.columns=['date', 'EUR_to_USD']
+    df_cz_all=df_convert_eur(df_cz_psf,eur_usd_today)
+    df_cz_all=df_cz_all[['date', 'network','Brand','total_spend', 'total_spend_campaign_currency']]
     
+    # EX/Hue
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.hueads_campaign_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_hueads = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.pressize_campaign_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_pr = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.explorads_campaign_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_exp = client.query(query).result().to_dataframe()
+    df_hpe = pd.concat([df_hueads, df_pr, df_exp], ignore_index=True)
+    df_hpef = df_hpe[['date','network','Brand','total_spend', 'adv_clicks','adv_impressions']].groupby(['date','network','Brand']).sum().reset_index()
+    df_hpef['total_spend_campaign_currency']=df_hpef['total_spend']
+    # Cointraffic
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.cointraffic_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_ctrf = client.query(query).result().to_dataframe()
+    # Match2One
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.m2o_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_m2o = client.query(query).result().to_dataframe()
+    # P161 - Match2One
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.p161_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_p161 = client.query(query).result().to_dataframe()
+
+    # Vizibl
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.vizibl_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_vz = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.bdsp_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_bsw = client.query(query).result().to_dataframe()
+        
+    # Personaly
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.personally_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_pers = client.query(query).result().to_dataframe()
+
+    # Google Ads & Twitter & Apple
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.googleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_gads = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.appleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_apple = client.query(query).result().to_dataframe()
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.twitter_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fbtw = client.query(query).result().to_dataframe()
+
+    # Facebook
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.meta_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fb = client.query(query).result().to_dataframe()
+    # Moloco
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.moloco_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_mol = client.query(query).result().to_dataframe()
+    # Exoclick
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.exoclick_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_excl = client.query(query).result().to_dataframe()
+    # MediaMath
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.mediamath_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_mmf = client.query(query).result().to_dataframe()
+    
+    # 3.  Adform + DSP Data
+    df_dsps_api_ = pd.concat([df_cz_all, df_mmf, df_hpef, df_m2o, df_vz,df_bsw, df_p161, df_fbtw, df_fb, df_gads, df_pers, df_excl,df_mol,df_apple,df_ctrf], ignore_index=True)
+    df_dsps_api=df_dsps_api_[['date', 'network','Brand','total_spend','total_spend_campaign_currency', 'adv_clicks', 'adv_impressions','adv_installs', 'mm_installs']].groupby(['date','network','Brand']).sum().reset_index()
+    df_dsps_api = df_dsps_api.rename(columns={'total_spend': 'total_spend_dsp'})
+    df_dsps_api = df_dsps_api.drop('total_spend_campaign_currency', axis=1)
+    df_dsps_api['Brand']= df_dsps_api['Brand'].str.replace('mindofpepe-cryptopresale','mindofpepe')
+    df_fs_corr_dsp=pd.merge(df_fs_corr, df_dsps_api,  how='left', left_on=['date','Brand','network'], right_on=['date','Brand','network'])
+    diff_df = df_dsps_api.merge(df_fs_corr, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df = diff_df.drop('_merge', axis=1)
+    diff_df['Brand']= diff_df['Brand'].str.replace('cryptopresales','presale')
+    diff_df['Brand']= diff_df['Brand'].str.replace('cryptopresale','presale')
+    diff_df['Brand']=diff_df['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+    vertical_mapping = df_fs_corr.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df['Vertical'] = diff_df.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df_fs_corr_dsp = pd.concat([df_fs_corr_dsp, diff_df], ignore_index=True)
+    
+    
+    # 4. Additiona Sources
+    # Singular
+    query= f"SELECT date,network, Brand, custom_installs, custom_signups, custom_revenue  FROM `dwh-landing-v1.paid_media_network_raw.singular_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_sing = client.query(query).result().to_dataframe()
+    df_sing.fillna(0, inplace=True)
+    df_fs_corr_dsp_f=pd.merge(df_fs_corr_dsp, df_sing,  how='left', left_on=['date','Brand','network'], right_on=['date','Brand','network'])
+    df_fs_corr_dsp_f['Install'] = df_fs_corr_dsp_f['custom_installs'].where(((df_fs_corr_dsp_f['Brand'] == 'bestwalletapp')), 0)
+    df_fs_corr_dsp_f['SignUp'] = df_fs_corr_dsp_f['custom_signups'].where(((df_fs_corr_dsp_f['Brand'] == 'bestwalletapp')),0)
+    df_fs_corr_dsp_f['total_revenue'] = df_fs_corr_dsp_f['custom_revenue'].where(((df_fs_corr_dsp_f['Brand'] == 'bestwalletapp')), df_fs_corr_dsp_f['total_revenue'])
+
+
+    # Etherscan
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_etherscan = client.query(query).result().to_dataframe()
+    df_etherscan.fillna(0, inplace=True)
+    df_fs_corr_dsp_fe=pd.merge(df_fs_corr_dsp_f, df_etherscan,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_eth = df_etherscan.merge(df_fs_corr_dsp_f, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_eth = diff_df_eth.drop('_merge', axis=1)
+    vertical_mapping = df_fs_corr_dsp_fe.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df_eth['Vertical'] = diff_df_eth.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df_fs_corr_dsp_fe = pd.concat([df_fs_corr_dsp_fe, diff_df_eth], ignore_index=True)
+
+    # CoinMarketCap
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinmarketcap_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cmc = client.query(query).result().to_dataframe()
+    df_cmc.fillna(0, inplace=True)
+
+    # Geckoterminal
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.cgk_adzerk_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_imps_cgk = client.query(query).result().to_dataframe()
+    df_imps_cgk.fillna(0, inplace=True)
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.cgk_gam_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_imps_gam = client.query(query).result().to_dataframe()
+    df_imps_gam.fillna(0, inplace=True)
+    df_cggam = pd.concat([df_imps_cgk, df_imps_gam], ignore_index=True)
+    df_cggam['Brand']=df_cggam['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+    df_cggt = pd.concat([df_cggam, df_cmc], ignore_index=True)
+    df_cggt=df_cggt[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
+    df_cggt=df_cggt[df_cggt['Brand']!='geckoterminal_trending_bar']
+    df_cggt['Brand']=df_cggt['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_cggt['Brand']=df_cggt['Brand'].apply(brand_clean_polish)
+    df_cggt = df_cggt[(df_cggt['date'] >= start_date) & (df_cggt['date'] <= end_date)]
+    df_fs_corr_dsp_fecmc=pd.merge(df_fs_corr_dsp_fe, df_cggt,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_cggt = df_cggt.merge(df_fs_corr_dsp_fe, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_cggt = diff_df_cggt.drop('_merge', axis=1)
+    vertical_mapping = df_fs_corr_dsp_fecmc.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df_cggt['Vertical'] = diff_df_cggt.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df_fs_corr_dsp_fecmc = pd.concat([df_fs_corr_dsp_fecmc, diff_df_cggt], ignore_index=True)
+    
+    # 5. Spend - fix budget allocation
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
+    df_fs_corr_fix_dictgt.fillna(0, inplace=True)
+
+    # 5. Final cost
+    df_w_cost=pd.merge(df_fs_corr_dsp_fecmc, df_fs_corr_fix_dictgt,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_gt = df_fs_corr_fix_dictgt.merge(df_fs_corr_dsp_fecmc, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_gt = diff_df_gt.drop('_merge', axis=1)
+    vertical_mapping = df_w_cost.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df_gt['Vertical'] = diff_df_gt.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df_w_cost = pd.concat([df_w_cost, diff_df_gt], ignore_index=True)
+    df_w_cost['budget_to_allocate'] = df_w_cost[['total_spend_dsp', 'fix_budget','total_spend', 'total_spend_cmc','total_spend_eth']].max(axis=1)
+    df_w_cost['impressions'] = np.where((df_w_cost['network']=='Etherscan (Media)'), df_w_cost['eth_impressions'], df_w_cost['impressions'])
+    df_w_cost['total_spend'] = np.where(df_w_cost['network']=='Real Time Bidding (Media)', df_w_cost['total_spend'], df_w_cost['budget_to_allocate'])
+    df_w_cost['impressions'] = np.where(df_w_cost['network']=='Explorads (Media)', df_w_cost['adv_clicks'], df_w_cost['impressions'])
+    df_w_cost['impressions'] = np.where(df_w_cost['network']=='Hue Ads (Media)', df_w_cost['adv_clicks'], df_w_cost['impressions'])
+    df_w_cost['impressions'] = np.where(df_w_cost['network'].str.contains('Personaly|Moloco|Kayzen|Exoclick|Apple'), df_w_cost['adv_impressions'], df_w_cost['impressions'])
+    df_w_cost['clicks'] = np.where(df_w_cost['network'].str.contains('Personaly|Moloco|Kayzen|Exoclick|Apple'), df_w_cost['adv_clicks'], df_w_cost['clicks'])
+    df_w_cost['impressions'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['impressions']-df_w_cost['del_impressions']), df_w_cost['impressions'])
+    df_w_cost['clicks'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['clicks']-df_w_cost['del_clicks']), df_w_cost['clicks'])
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='Meta (Media)')|(df_w_cost['network']=='Twitter (Media)')), df_w_cost['adv_impressions'], df_w_cost['impressions'])
+    df_w_cost['impressions'] = np.where(df_w_cost['network']=='Google Ads', df_w_cost['adv_impressions'], df_w_cost['impressions'])
+    df_w_cost['clicks'] = np.where(df_w_cost['network']=='Google Ads', df_w_cost['adv_clicks'], df_w_cost['clicks'])
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='CoinMarketCap (Media)')|(df_w_cost['network']=='Coingecko (Media)')|(df_w_cost['network']=='Geckoterminal (Media)')), df_w_cost['impressions_cmc'], df_w_cost['impressions'])
+    df_w_cost['clicks'] = np.where(((df_w_cost['network']=='CoinMarketCap (Media)')|(df_w_cost['network']=='Coingecko (Media)')|(df_w_cost['network']=='Geckoterminal (Media)')), df_w_cost['clicks_cmc'], df_w_cost['clicks'])
+    df_w_cost['total_spend'] = np.where(((df_w_cost['network']=='CoinMarketCap (Media)')|(df_w_cost['network']=='Coingecko (Media)')|(df_w_cost['network']=='Geckoterminal (Media)')), df_w_cost['total_spend_cmc'], df_w_cost['total_spend'])
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='DexScreener (Media)')&(df_w_cost['Brand']=='basedawgz')), 0 , df_w_cost['impressions'])
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='DexScreener (Media)')&(df_w_cost['Brand']=='playdoge')), 0 ,df_w_cost['impressions'] )
+    df_w_cost['clicks'] = np.where(((df_w_cost['network']=='DexScreener (Media)')&(df_w_cost['Brand']=='basedawgz')), 0 ,df_w_cost['clicks'] )
+    df_w_cost['clicks'] = np.where(((df_w_cost['network']=='DexScreener (Media)')&(df_w_cost['Brand']=='playdoge')), 0 ,df_w_cost['clicks'] )
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='CoinCarp (Media)')&(df_w_cost['Brand']=='basedawgz')), 0 ,df_w_cost['impressions'] )
+    df_w_cost['impressions'] = np.where(((df_w_cost['network']=='CoinCarp (Media)')&(df_w_cost['Brand']=='playdoge')), 0 ,df_w_cost['impressions'] )
+    df_w_cost['clicks'] = np.where(((df_w_cost['network']=='CoinCarp (Media)')&(df_w_cost['Brand']=='basedawgz')), 0 ,df_w_cost['clicks'] )
+    df_w_cost['clicks'] = np.where(((df_w_cost['network']=='CoinCarp (Media)')&(df_w_cost['Brand']=='playdoge')), 0 ,df_w_cost['clicks'] )
+    df_w_cost['total_spend'] = np.where(((df_w_cost['network']=='cardplayer.om (Media)')), 0, df_w_cost['total_spend'])
+    df_w_cost['impressions']=df_w_cost['impressions'].fillna(0).astype(int)
+    df_w_cost['clicks']=df_w_cost['clicks'].fillna(0).astype(int)
+    df_w_cost = df_w_cost.fillna(0)
+    df_w_cost['total_revenue'] = np.where(((df_w_cost['Brand'] == 'bestwalletapp')), df_w_cost['custom_revenue'], (df_w_cost['Deposit_Sales']+df_w_cost['FTD_Sales']))
+    format_kpi=['Registration CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+    rename_brands = {
+        'coinpoker': 'CoinPoker',
+        'coinpokercasino': 'CoinPoker',
+        'megadicetg': 'MegaDice',
+        'instantcasino': 'Instant Casino',
+        'luckyblock': 'LuckyBlock',
+        'lb': 'LuckyBlock',
+        'megadice': 'MegaDice',
+        'tgc': 'TG Casino',
+        'wsm': 'Wallstreetmemes',
+        'cryptoallstars': 'Crypto All Stars',
+        'flockerz': 'Flockerz',
+        'memebet': 'Memebet',
+        'basedawgz': 'Base Dawgz',
+        'shibashootout': 'Shiba Shootout',
+        'memegames': 'Meme Games',
+        'playdoge': 'PlayDoge',
+        'megadicepresale': 'Megadice-presale',
+        'pepeunchained': 'Pepe Unchained',
+        'slothana': 'Slothana',
+        'goldenpanda': 'Golden Panda',    
+        'bestwalletapp': 'BestWalletApp-Promo',
+        'bovada': 'Bovada',
+        'freedumfighters': 'Freedum Fighters',
+        'catslap': 'CatSlap', 
+        'thehighroller':'TheHighRoller',
+        'highroller':'TheHighRoller',
+        'wepe':'Wepe',
+        'sambaslots': 'Samba Slots',
+        'solaxy': 'Solaxy', 
+        'tonaldtokendextoolsus': 'tonaldtrump',
+        'nokyc':'NO KYC',
+        'bestwalletapp-presale':'BestWalletApp-Presale',
+        'memeindex':'Meme Index',
+        'coincasino':'Coin.Casino'}
+
+    df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='thehighroller', 'Casino', df_w_cost['Vertical'])
+    df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='pepeunchained', 'Crypto', df_w_cost['Vertical'])
+    df_w_cost=df_w_cost[(df_w_cost['network']!='Techopedia (Media)')&(df_w_cost['network']!='A-Ads (Media)')&(df_w_cost['network']!='Opera (Media)')&(df_w_cost['network']!='Cryptopolitan (Media)')]
+    df_w_cost=df_w_cost[(df_w_cost['date']>=start_date)&(df_w_cost['date']<=end_date)]
+    report_metrics=['impressions', 'clicks', 'total_spend','total_spend_campaign_currency','Registration','WalletConnected','Deposit', 'Deposit_Sales','total_revenue','FTD','FTD_Sales', 'Install', 'SignUp']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+    df=pivot(df_w_cost, dimensions=['date','Vertical','Brand','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    vertical_mapping = df_w_cost.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    df['Vertical'] = df.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df['brand_id']=df['Brand']
+    df['Brand']= df['Brand'].replace(rename_brands)
+    df['Brand']= df['Brand'].apply(lambda x: x.capitalize() if isinstance(x, str) else x)
+    df=df[(df['Vertical']!=0)]
+    report_metrics=['impressions', 'clicks', 'total_spend','Registration','WalletConnected','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales', 'Install', 'SignUp', 'total_revenue']
+    df_looker=pivot(df, dimensions=['date','network', 'brand_id','Brand', 'Vertical'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    df_looker.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df_looker['week_number'] = df_looker['date'].dt.isocalendar().week
+    df_looker['week_year'] = df_looker['date'].dt.isocalendar().year
+    df_looker['week_start'] = df_looker['date'] - pd.to_timedelta(df_looker['date'].dt.weekday, unit='D')
+    df_looker=df_looker.fillna(0)
+    df_looker =df_looker[['date', 'week_start', 'Vertical',  'brand_id', 'Brand', 'network', 'impressions', 'clicks', 'total_spend', 'Registration', 'WalletConnected', 'Deposit', 'FTD',  'total_revenue','Deposit_Sales', 'FTD_Sales',  'Install', 'SignUp']]
+    df_looker["month"] = df_looker["date"].dt.strftime("%Y_%m")
+    df_looker['week_start'] = df_looker['week_start'].dt.strftime('%Y-%m-%d')
+    return df_looker
 
