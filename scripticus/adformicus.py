@@ -2062,6 +2062,69 @@ def fetch_twitter_report(client, start_date, end_date):
     return df_fbtw
 
 
+# Facebook
+def fetch_meta_report(client, start_date, end_date):
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.meta_campaigns`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fb = client.query(query).result().to_dataframe()
+    df_fb=df_columns_rename(df_fb)
+    df_fb['date'] = pd.to_datetime(df_fb['date'])
+    df_fb['Brand'] = df_fb['brand']
+    df_fb['Brand']=df_fb['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_fb['Brand']=df_fb['Brand'].apply(brand_clean_polish)
+    df_fb = add_presale_to_brand(df_fb,  external_column='Brand')
+    df_fb=df_fb.fillna(0)
+    df_fb['impressions'] = df_fb['impressions'].fillna(0).astype(int)  # Fill NaNs with 0 and convert to int
+    df_fb['adv_impressions'] = df_fb['impressions']
+    df_fb['adv_impressions']=df_fb['impressions'].astype(int)
+    df_fb['clicks'] = df_fb['clicks'].fillna(0)  # Replace NaNs with 0
+    df_fb['adv_clicks'] = df_fb['clicks'].astype(int)  # Convert to int
+    df_fb['total_spend']=df_fb['total_spent']
+    df_fb['total_spend'] = df_fb['total_spend'].replace('n/a', 0)
+    df_fb['total_spend']=df_fb['total_spend'].replace('-', np.nan)
+    df_fb['total_spend']=df_fb['total_spend'].replace('N/A', 0)
+    df_fb['total_spend']=df_fb['total_spend'].astype(float)
+    df_fb['total_spend_campaign_currency']=df_fb['total_spend']
+    df_fb['network']='Meta (Media)'
+    df_fb=df_fb[['date','network','Brand','adv_clicks','adv_impressions','total_spend', 'total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    return df_fb
+
+
+
+
+# Facebook
+def fetch_etherscan_report(client, start_date, end_date):
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_placements`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_etherscan = client.query(query).result().to_dataframe()
+    df_etherscan=df_columns_rename(df_etherscan)
+    df_etherscan['date'] = pd.to_datetime(df_etherscan['date'])
+    df_etherscan['date']=df_etherscan['date'].dt.strftime('%Y-%m-%d')
+    df_etherscan['network']='Etherscan (Media)'
+    df_etherscan['Brand'] = df_etherscan['Brand'].str.split('_').str[0]
+    df_etherscan['Brand']=df_etherscan['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_etherscan['Brand']=df_etherscan['Brand'].apply(brand_clean_polish)
+    df_etherscan = add_presale_to_brand(df_etherscan,  external_column='Brand')
+    df_etherscan['Brand'] = df_etherscan['Brand'].replace({
+            'mipepe':'mindofpepe',
+            'mi': 'memeindex',
+        })
+    df_etherscan['impressions']=df_etherscan['impressions'].str.replace(',', '')
+    df_etherscan['impressions'] = df_etherscan['impressions'].replace('n/a', 0)
+    df_etherscan['impressions'] = df_etherscan['impressions'].replace('N/A', 0)
+    df_etherscan=df_etherscan.fillna(0)
+    df_etherscan['eth_impressions'] = df_etherscan['impressions'].replace('-', np.nan)
+    df_etherscan['eth_impressions'] = df_etherscan['eth_impressions'].astype(float).astype('Int64')  # Keeps NaNs
+    df_etherscan["impressions"] = pd.to_numeric(df_etherscan["impressions"], errors="coerce")
+    df_etherscan['Clicks'] = pd.to_numeric(df_etherscan["Clicks"], errors="coerce")
+    df_etherscan['total_spend_eth']=df_etherscan['Total_Spent']
+    df_etherscan['total_spend_eth']=df_etherscan['total_spend_eth'].str.replace(',', '')
+    df_etherscan['total_spend_eth'] = df_etherscan['total_spend_eth'].replace('n/a', 0)
+    df_etherscan['total_spend_eth']=df_etherscan['total_spend_eth'].replace('-', np.nan)
+    df_etherscan['total_spend_eth']=df_etherscan['total_spend_eth'].replace('N/A', 0)
+    df_etherscan['total_spend_eth']=df_etherscan['total_spend_eth'].astype(float)
+    df_etherscan=df_etherscan[['date', 'Brand', 'Site', 'Placement','Clicks','network', 'eth_impressions', 'total_spend_eth']]
+    df_etherscan=df_etherscan[['date','network','Brand','total_spend_eth', 'eth_impressions']].groupby(['date','network','Brand']).sum().reset_index()
+
+    return df_etherscan
 
 
 # Mail operation
