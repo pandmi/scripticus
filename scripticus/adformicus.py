@@ -1943,6 +1943,127 @@ class ExoClickAPI:
     def get_partner(self, value):
         return {"Enabled": "1", "Disabled": "0"}.get(value)
 
+# Working with GADS, Apple and Twitter
+
+def df_convert_currency(df, df_rates):
+    df['date'] = pd.to_datetime(df['date'])
+    df_rates['date'] = pd.to_datetime(df_rates['date'])
+    
+    # Merge the dataframes on date
+    df = pd.merge(df, df_rates, on='date', how='left')
+    
+    # Apply conversion based on the 'currency' column
+    df['total_spend'] = df.apply(
+        lambda row: row['total_spend_campaign_currency'] * row['GBP_to_USD']
+        if row['currency_code'] == 'GBP'
+        else row['total_spend_campaign_currency'] * row['EUR_to_USD'], 
+        axis=1
+    )
+    
+    return df
+
+   
+def fetch_googleads_report(client, start_date, end_date):
+    query= f"SELECT * FROM `sunny-hope-447708-q0.dbt_rhopp_google_ads.google_ads__account_report`"
+    df_gads = client.query(query).result().to_dataframe()
+    df_gads['network']='Google Ads'
+    df_gads['date_day'] = pd.to_datetime(df_gads['date_day'])
+    df_gads['date'] = df_gads['date_day'].dt.strftime('%Y-%m-%d')
+    df_gads['Brand'] = df_gads['source_relation'].str.split('_').str[2]
+    df_gads['Brand']=df_gads['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    df_gads['Brand']=df_gads['Brand'].apply(brand_clean_polish)
+    df_gads = add_presale_to_brand(df_gads, external_column='source_relation')
+    df_gads=df_columns_rename(df_gads)
+    df_gads['total_spend']=df_gads['spend'].astype(float)
+    df_gads['total_spend_campaign_currency']=df_gads['total_spend'].astype(float)
+    df_gads['adv_impressions']=df_gads['impressions']
+    df_gads['adv_clicks']=df_gads['clicks']
+    
+    query = f"""SELECT *FROM `dwh-landing-v1.exchange_rates.currency_api_usd_daily` WHERE Date >= '{start_date}' AND Date <= '{end_date}'"""
+    currency_rates = client.query(query).result().to_dataframe()
+    filtered_rates = currency_rates[currency_rates['To_Currency'].isin(['EUR', 'GBP'])]
+    df_rates = filtered_rates.pivot(index='Date', columns='To_Currency', values='Rate').reset_index()
+    df_rates.columns.name = None  # remove the pivot column name
+    df_rates.rename(columns={
+        'Date': 'date',
+        'EUR': 'EUR_to_USD',
+        'GBP': 'GBP_to_USD'}, inplace=True)
+    df_gads=df_convert_currency(df_gads, df_rates)
+    df_gads=df_gads[['date','network','Brand','adv_impressions','adv_clicks','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    df_gads=df_gads[(df_gads['Brand']=='bestwalletapp')|(df_gads['Brand']=='jemlit')]
+    df_gads=df_gads[(df_gads['date']>=start_date)&(df_gads['date']<=end_date)]
+    df_gads['date'] = pd.to_datetime(df_gads['date'])
+    return df_gads
+
+
+def fetch_appleads_report(client, start_date, end_date):
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_appleads_apple_search_ads.apple_search_ads__organization_report`WHERE date_day >= '{start_date}' and date_day <='{end_date}'"
+    df_apple = client.query(query).result().to_dataframe()
+    df_apple['Brand']='bestwalletapp'
+    df_apple['date_day'] = pd.to_datetime(df_apple['date_day'])
+    df_apple['date'] = df_apple['date_day'].dt.date
+    df_apple['network']='Apple Search Ads'
+    df_apple['adv_impressions']=df_apple['impressions']
+    df_apple['adv_clicks']=0
+    df_apple=df_apple.fillna(0)
+    df_apple['total_spend']=df_apple['spend']
+    df_apple['total_spend'] = df_apple['spend'].replace('n/a', 0)
+    df_apple['total_spend']=df_apple['spend'].replace('-', np.nan)
+    df_apple['total_spend']=df_apple['spend'].replace('N/A', 0)
+    df_apple['total_spend']=df_apple['spend'].astype(float)
+    df_apple['total_spend_campaign_currency']=df_apple['total_spend']
+    df_apple=df_apple[['date','network','Brand','adv_clicks','adv_impressions','total_spend', 'total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    df_apple=df_apple[['date', 'network', 'Brand', 'total_spend', 'total_spend_campaign_currency','adv_clicks', 'adv_impressions']]
+    df_apple['date'] = pd.to_datetime(df_apple['date'])
+    return df_apple
+
+def fetch_twitter_report(client, start_date, end_date):
+    query = f"""SELECT *FROM `dwh-landing-v1.paid_media_twitter_jemlit_twitter_ads.twitter_ads__account_report`WHERE date_day >= TIMESTAMP('{start_date}') AND date_day <= TIMESTAMP('{end_date}')"""
+    df_tw_jemlit = client.query(query).result().to_dataframe()
+    df_tw_jemlit['Brand']='jemlit'
+    df_tw_jemlit['date_day'] = pd.to_datetime(df_tw_jemlit['date_day'])
+    df_tw_jemlit['date'] = df_tw_jemlit['date_day'].dt.date
+    df_tw_jemlit['network']='Twitter (Media)'
+    df_tw_jemlit['adv_impressions']=df_tw_jemlit['impressions']
+    df_tw_jemlit['adv_clicks']=df_tw_jemlit['clicks']
+          
+    query = f"""SELECT *FROM `dwh-landing-v1.paid_media_twitter_bestwallet_twitter_ads.twitter_ads__account_report`WHERE date_day >= TIMESTAMP('{start_date}') AND date_day <= TIMESTAMP('{end_date}')"""
+    df_tw_betswallet = client.query(query).result().to_dataframe()
+    df_tw_betswallet = client.query(query).result().to_dataframe()
+    df_tw_betswallet['Brand']='bestwallet'
+    df_tw_betswallet['date_day'] = pd.to_datetime(df_tw_betswallet['date_day'])
+    df_tw_betswallet['date'] = df_tw_betswallet['date_day'].dt.date
+    df_tw_betswallet['network']='Twitter (Media)'
+    df_tw_betswallet['adv_impressions']=df_tw_betswallet['impressions']
+    df_tw_betswallet['adv_clicks']=df_tw_betswallet['clicks']
+    
+    query = f"""SELECT *FROM `dwh-landing-v1.paid_media_twitter_coinpoker_twitter_ads.twitter_ads__account_report`WHERE date_day >= TIMESTAMP('{start_date}') AND date_day <= TIMESTAMP('{end_date}')"""
+    df_tw_cp = client.query(query).result().to_dataframe()
+    df_tw_cp['Brand']='coinpoker'
+    df_tw_cp['date_day'] = pd.to_datetime(df_tw_cp['date_day'])
+    df_tw_cp['date'] = df_tw_cp['date_day'].dt.date
+    df_tw_cp['network']='Twitter (Media)'
+    df_tw_cp['adv_impressions']=df_tw_cp['impressions']
+    df_tw_cp['adv_clicks']=df_tw_cp['clicks']
+    
+    df_fbtw = pd.concat([df_tw_betswallet, df_tw_cp, df_tw_jemlit], ignore_index=True)
+    df_fbtw['date']=df_fbtw['date'].astype(str)
+    df_fbtw['date'] = pd.to_datetime(df_fbtw['date'])
+    df_fbtw['date'] = df_fbtw['date'].dt.strftime('%Y-%m-%d')
+    df_fbtw=df_fbtw[(df_fbtw['date']>=start_date)&(df_fbtw['date']<=end_date)]
+    df_fbtw=df_fbtw.fillna(0)
+    df_fbtw['total_spend']=df_fbtw['spend']
+    df_fbtw['total_spend'] = df_fbtw['spend'].replace('n/a', 0)
+    df_fbtw['total_spend']=df_fbtw['spend'].replace('-', np.nan)
+    df_fbtw['total_spend']=df_fbtw['spend'].replace('N/A', 0)
+    df_fbtw['total_spend']=df_fbtw['spend'].astype(float)
+    df_fbtw['total_spend_campaign_currency']=df_fbtw['total_spend']
+    df_fbtw=df_fbtw[['date','network','Brand','adv_clicks','adv_impressions','total_spend', 'total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+    return df_fbtw
+
+
+
+
 # Mail operation
 
 def connect_to_gmail(EMAIL_USER, EMAIL_PASS):
