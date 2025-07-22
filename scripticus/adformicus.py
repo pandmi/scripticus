@@ -2783,3 +2783,173 @@ def cl_brand_report(client, start_date, end_date):
     df_looker['week_start'] = df_looker['week_start'].dt.strftime('%Y-%m-%d')
     return df_looker
 
+# Pivoted report
+import pandas as pd
+import numpy as np
+from datetime import timedelta
+from functools import reduce
+from datetime import date, timedelta
+
+
+# Aggregation function
+def agg_df(df, group_keys, metric_columns, all_metrics, date_filter, label):
+    filtered = df[date_filter]   
+    if filtered.empty:
+        return pd.DataFrame(columns=group_keys + ['metric', label])
+    
+    agg = filtered.groupby(group_keys)[metric_columns].sum().reset_index()
+
+    # Safe KPI calculations
+    impressions = agg['impressions'].replace(0, np.nan).astype(float)
+    clicks = agg['clicks'].replace(0, np.nan).astype(float)
+    total_spend = agg['total_spend'].astype(float)
+    revenue = agg['total_revenue'].astype(float)
+
+    agg['CPM'] = (total_spend * 1000) / impressions
+    agg['CTR'] = clicks / impressions
+    agg['CPC'] = total_spend / clicks
+    agg['Registration_CPA'] = total_spend / agg['Registration'].replace(0, np.nan)
+    agg['FTD_CPA'] = total_spend / agg['FTD'].replace(0, np.nan)
+    agg['Deposit_CPA'] = total_spend / agg['Deposit'].replace(0, np.nan)
+    agg['ROAS'] = revenue / total_spend
+    agg['ROAS_35'] = (revenue * 0.35) / total_spend
+    agg['ROI_35'] = (revenue * 0.35) - total_spend
+    
+
+
+    agg = agg.replace([np.inf, -np.inf], np.nan)
+
+    long_df = agg.melt(id_vars=group_keys, value_vars=all_metrics,
+                       var_name='metric', value_name=label)
+    return long_df
+
+
+
+def pivoted_brand_daily_report(client):
+    yesterday = date.today() - timedelta(days=1)
+    current_date = pd.Timestamp(yesterday)
+    # Define date ranges
+    start_of_month = pd.Timestamp(current_date).replace(day=1)
+    prev_month = (start_of_month - pd.DateOffset(months=1)).replace(day=1)
+    prev_month_end = start_of_month - timedelta(days=1)
+
+    # Handle months of different lengths
+    mtd_days = (current_date - start_of_month).days
+    prev_month_mtd_end = prev_month + timedelta(days=min(mtd_days, (prev_month_end - prev_month).days))
+    
+    start_date = prev_month.strftime("%Y-%m-%d")
+    end_date = yesterday.strftime("%Y-%m-%d")
+     
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_looker_upd = client.query(query).result().to_dataframe()
+    group_keys = ['date','Vertical', 'brand_id', 'Brand']
+    metric_columns = ['impressions', 'clicks', 'total_spend', 'Registration',
+                      'WalletConnected', 'Deposit', 'FTD', 'total_revenue',
+                      'Deposit_Sales', 'FTD_Sales', 'Install', 'SignUp']
+    df = df_looker_upd.groupby(group_keys)[metric_columns].sum().reset_index()
+    df['date'] = pd.to_datetime(df['date'])
+    # Define keys and metrics
+    group_keys = ['Vertical', 'brand_id', 'Brand']
+    metric_columns = ['impressions', 'clicks', 'total_spend', 'Registration',
+                      'WalletConnected', 'Deposit', 'FTD', 'total_revenue',
+                      'Deposit_Sales', 'FTD_Sales', 'Install', 'SignUp']
+    kpi_columns = ['CPM', 'CTR', 'CPC', 'Registration_CPA', 'FTD_CPA', 'Deposit_CPA',
+                   'ROAS', 'ROAS_35', 'ROI_35']
+    all_metrics = metric_columns + kpi_columns
+    # Get unique sorted dates
+    all_dates = df['date'].sort_values().unique()
+
+    results = []
+  
+    # Define filters
+    yest_filter = df['date'] == current_date
+    mtd_filter = (df['date'] >= start_of_month) & (df['date'] <= current_date)
+    prev_mtd_filter = (df['date'] >= prev_month) & (df['date'] <= prev_month_mtd_end)
+    prev_total_filter = (df['date'] >= prev_month) & (df['date'] <= prev_month_end)
+
+    # Aggregate
+    df_yest = agg_df(df,group_keys, metric_columns,all_metrics, yest_filter, 'Yesterday')
+    df_mtd = agg_df(df,group_keys, metric_columns,all_metrics, mtd_filter, 'MTD')
+    df_prev_mtd = agg_df(df, group_keys, metric_columns,all_metrics,prev_mtd_filter, 'Previous Month MTD')
+    df_prev_total = agg_df(df,group_keys, metric_columns, all_metrics,prev_total_filter, 'Previous Month Total')
+
+    # Base frame with valid group/metric combinations
+    base_frame = pd.DataFrame([
+        (v, b, br, m)
+        for (v, b, br) in df[group_keys].drop_duplicates().itertuples(index=False)
+        for m in all_metrics
+    ], columns=group_keys + ['metric'])
+
+    merged = base_frame.copy()
+
+    for d in [df_yest, df_mtd, df_prev_mtd, df_prev_total]:
+        if not d.empty and 'metric' in d.columns:
+            merged = pd.merge(merged, d, on=group_keys + ['metric'], how='left')
+
+    # Fill missing columns just in case
+    for col in ['Yesterday', 'MTD', 'Previous Month MTD', 'Previous Month Total']:
+        if col not in merged.columns:
+            merged[col] = 0
+
+    merged['Deviation'] = merged['MTD'] - merged['Previous Month MTD']
+    merged['date'] = current_date
+    merged.fillna(0, inplace=True)
+
+    results.append(merged)
+
+    # Final concatenated results
+    final_df = pd.concat(results, ignore_index=True)
+
+    # Define your custom metric order list
+    metric_order_list = [
+        'impressions', 'clicks', 'total_spend', 'total_revenue',
+        'Registration', 'WalletConnected', 'Deposit', 'Deposit_Sales', 'FTD',
+        'FTD_Sales', 'Install', 'SignUp', 'CPM', 'CTR', 'CPC',
+        'Registration_CPA', 'FTD_CPA', 'Deposit_CPA', 'ROAS', 'ROAS_35',
+        'ROI_35'
+    ]
+
+    # Create a mapping from metric to order index
+    metric_order_map = {metric: i for i, metric in enumerate(metric_order_list, start=1)}
+
+    # Add the column to the DataFrame
+    final_df['metric_order'] = final_df['metric'].map(metric_order_map)
+
+    # Rename metric names
+    metric_rename_map = {
+        'impressions': 'Impressions',
+        'clicks': 'Clicks',
+        'total_spend': 'Spend',
+        'Registration': 'Registration',
+        'WalletConnected': 'WalletConnected',
+        'Deposit': 'Reccuring Deposits',
+        'Deposit_Sales': 'Reccuring Deposits Sales',
+        'FTD': 'FTD',
+        'FTD_Sales': 'FTD Sales',
+        'Install': 'Install',
+        'SignUp': 'SignUp',
+        'total_revenue': 'Revenue'
+    }
+
+    final_df['metric'] = final_df['metric'].replace(metric_rename_map)
+
+    final_df=final_df[['date','Vertical', 'brand_id', 'Brand','metric_order', 'metric', 'Yesterday', 'MTD',
+           'Previous Month MTD', 'Previous Month Total', 'Deviation']]
+
+    final_df.columns=['date', 'Vertical', 'brand_id', 'Brand', 'metric_order', 'metric','Yesterday', 'MTD',
+           'Previous_Month_MTD', 'Previous_Month_Total', 'Deviation']
+
+
+    # Step 1: Identify brand groups where any metric is non-zero
+    non_zero_brands = final_df[
+        (final_df['Yesterday'] > 0) |
+        (final_df['MTD'] > 0) |
+        (final_df['Previous_Month_MTD'] > 0) |
+        (final_df['Previous_Month_Total'] > 0)
+    ][['Vertical', 'brand_id', 'Brand']].drop_duplicates()
+
+    # Step 2: Merge to retain all rows for those brands
+    final_df = final_df.merge(non_zero_brands, on=['Vertical', 'brand_id', 'Brand'], how='inner')
+
+    final_df['date'] = pd.to_datetime(final_df['date'])
+    return final_df
