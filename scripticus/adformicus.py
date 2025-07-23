@@ -2946,3 +2946,350 @@ def pivoted_brand_daily_report(client):
 
     final_df['date'] = pd.to_datetime(final_df['date'])
     return final_df
+
+#SQL Reports
+
+def clean_dataframe(df):
+    df = df.replace([np.inf, -np.inf], np.nan)  # Replace infinite values with NaN
+    df = df.fillna('')  # Replace NaN with empty string (or use 0 if preferred)
+    return df
+
+def wsm_weekly_report(client):
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.raw_wsm_weekly_performance`WHERE start_date < '2025-05-01'"
+    df_old = client.query(query).result().to_dataframe()
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE brand_id='wsm' and week_start >=  '2025-05-01'"
+    df_hist = client.query(query).result().to_dataframe()
+    # Convert to datetime
+    df_hist['week_start'] = pd.to_datetime(df_hist['week_start'])
+    # Create end_date by adding 6 days
+    df_hist['end_date'] = df_hist['week_start'] + pd.Timedelta(days=6)
+    df_hist['start_date'] = df_hist['week_start']
+    df_hist['start_date'] = df_hist['start_date'].dt.strftime('%Y-%m-%d')
+    df_hist['end_date'] = df_hist['end_date'].dt.strftime('%Y-%m-%d')
+
+    df_hist=df_hist[['start_date', 'end_date', 'network','impressions', 'clicks', 'total_spend', 'total_revenue','Registration','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales']]
+
+
+    report_metrics=['impressions', 'clicks', 'total_spend', 'total_revenue','Registration','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+
+
+    crypto_network_=pivot(df_hist, dimensions=['start_date','end_date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+
+    crypto_network_=crypto_network_[crypto_network_['impressions']>200]
+
+
+    totals_raw=pivot(crypto_network_, dimensions=['start_date', 'end_date'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw['network'] = ' Total (all networks):'
+
+
+    crypto_network = pd.concat([crypto_network_, totals_raw], ignore_index=True)
+    crypto_network=df_cct_rename(crypto_network)
+
+    # Convert to datetime if not already
+    crypto_network['start_date'] = pd.to_datetime(crypto_network['start_date'])
+    crypto_network['end_date'] = pd.to_datetime(crypto_network['end_date'])
+
+    # Create a flag: 0 for normal rows, 1 for totals
+    crypto_network['is_total'] = crypto_network['network'].str.contains("Total", na=False).astype(int)
+
+    # Sort by start_date, end_date, and the flag (totals will be last for each group)
+    crypto_network = crypto_network.sort_values(by=['start_date', 'end_date', 'is_total'])
+
+    # Drop helper column if no longer needed
+    crypto_network = crypto_network.drop(columns='is_total')
+
+    crypto_network=crypto_network[['start_date', 'end_date', 'network', 'Impressions', 'Clicks', 'CTR','Total Cost','CPM', 
+           'Registrations', 'FTD', 'Deposits',  'FTD_Sales', 'Deposit_Sales',
+           'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)',
+           'ROI (35%)']]
+
+
+    crypto_network.columns=['start_date', 'end_date', 'network', 'Impressions', 'Clicks', 'CTR',
+           'Total_Cost', 'CPM', 'Registrations', 'FTD', 'Deposits', 'FTD_Sales',
+           'Deposit_Sales', 'Registration_CPA', 'FTD_CPA', 'Deposit_CPA', 'ROAS',
+           'ROAS_35%', 'ROI_35%']
+
+    crypto_network['start_date'] = crypto_network['start_date'].dt.strftime('%Y-%m-%d')
+    crypto_network['end_date'] = crypto_network['end_date'].dt.strftime('%Y-%m-%d')
+
+
+    crypto_network = clean_dataframe(crypto_network)
+
+    crypto_network=crypto_network[(crypto_network['Impressions']>0)|(crypto_network['Clicks']>0)|(crypto_network['Total_Cost']>0)|(crypto_network['Registrations']>0)|(crypto_network['FTD']>0)|(crypto_network['Deposits']>0)|(crypto_network['FTD_Sales']>0)|(crypto_network['Deposit_Sales']>0)]
+
+    df_looker_upd= pd.concat([df_old, crypto_network], ignore_index=True)
+    return df_looker_upd
+
+def brand_weekly_report(client,brand_id):
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE brand_id='{brand_id}'"
+    df_hist = client.query(query).result().to_dataframe()
+    # Convert to datetime
+    df_hist['week_start'] = pd.to_datetime(df_hist['week_start'])
+
+    # Create end_date by adding 6 days
+    df_hist['end_date'] = df_hist['week_start'] + pd.Timedelta(days=6)
+    df_hist['start_date'] = df_hist['week_start']
+
+    df_hist['start_date'] = df_hist['start_date'].dt.strftime('%Y-%m-%d')
+    df_hist['end_date'] = df_hist['end_date'].dt.strftime('%Y-%m-%d')
+    df_hist=df_hist[['start_date', 'end_date', 'network','impressions', 'clicks', 'total_spend', 'total_revenue','Registration','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales']]
+    report_metrics=['impressions', 'clicks', 'total_spend','total_revenue','Registration','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+
+    crypto_network_=pivot(df_hist, dimensions=['start_date','end_date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw=pivot(crypto_network_, dimensions=['start_date', 'end_date'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw['network'] = ' Total (all networks):'
+
+
+    crypto_network = pd.concat([crypto_network_, totals_raw], ignore_index=True)
+    crypto_network=df_cct_rename(crypto_network)
+
+    # Convert to datetime if not already
+    crypto_network['start_date'] = pd.to_datetime(crypto_network['start_date'])
+    crypto_network['end_date'] = pd.to_datetime(crypto_network['end_date'])
+
+    # Create a flag: 0 for normal rows, 1 for totals
+    crypto_network['is_total'] = crypto_network['network'].str.contains("Total", na=False).astype(int)
+
+    # Sort by start_date, end_date, and the flag (totals will be last for each group)
+    crypto_network = crypto_network.sort_values(by=['start_date', 'end_date', 'is_total'])
+
+    # Drop helper column if no longer needed
+    crypto_network = crypto_network.drop(columns='is_total')
+    crypto_network=crypto_network[['start_date', 'end_date', 'network', 'Impressions', 'Clicks', 'CTR','Total Cost','CPM', 
+           'Registrations', 'FTD', 'Deposits',  'FTD_Sales', 'Deposit_Sales',
+           'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)',
+           'ROI (35%)']]
+
+    crypto_network.columns=['start_date', 'end_date', 'network', 'Impressions', 'Clicks', 'CTR',
+           'Total_Cost', 'CPM', 'Registrations', 'FTD', 'Deposits', 'FTD_Sales',
+           'Deposit_Sales', 'Registration_CPA', 'FTD_CPA', 'Deposit_CPA', 'ROAS',
+           'ROAS_35%', 'ROI_35%']
+
+    crypto_network['start_date'] = crypto_network['start_date'].dt.strftime('%Y-%m-%d')
+    crypto_network['end_date'] = crypto_network['end_date'].dt.strftime('%Y-%m-%d')
+
+    crypto_network=crypto_network[(crypto_network['Impressions']>0)|(crypto_network['Clicks']>0)|(crypto_network['Total_Cost']>0)|(crypto_network['Registrations']>0)|(crypto_network['FTD']>0)|(crypto_network['Deposits']>0)|(crypto_network['FTD_Sales']>0)|(crypto_network['Deposit_Sales']>0)]
+    crypto_network = clean_dataframe(crypto_network)
+    return crypto_network
+
+
+
+def coinpoker_weekly_report(client):
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE brand_id='coinpoker'"
+    df_net = client.query(query).result().to_dataframe()
+        # Convert to datetime
+    df_net['week_start'] = pd.to_datetime(df_net['week_start'])
+
+    # Create end_date by adding 6 days
+    df_net['end_date'] = df_net['week_start'] + pd.Timedelta(days=6)
+    df_net['start_date'] = df_net['week_start']
+
+    df_net['start_date'] = df_net['start_date'].dt.strftime('%Y-%m-%d')
+    df_net['end_date'] = df_net['end_date'].dt.strftime('%Y-%m-%d')
+
+    report_metrics=['impressions', 'clicks', 'total_spend','Registration']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA']
+
+    format_kpi=['Registration CPA']
+    format_color='gray'
+    df_net['start_date'] = pd.to_datetime(df_net['start_date'])
+    df_net['end_date'] = pd.to_datetime(df_net['end_date'])
+
+    dfp_bn=pivot(df_net, dimensions=['start_date','end_date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['total_spend'], ascending = [False])
+
+    dfp_bn = dfp_bn.sort_values(by='start_date')
+
+    dfp_bn['start_date'] = dfp_bn['start_date'].dt.strftime('%Y-%m-%d')
+    dfp_bn['end_date'] = dfp_bn['end_date'].dt.strftime('%Y-%m-%d')
+
+    dfp_bn=dfp_bn[dfp_bn['end_date']!='2025-01-01']
+    dfp_bn.replace([np.inf, -np.inf], np.nan, inplace=True)
+    dfp_bn=dfp_bn.fillna(0)
+    numeric_cols = dfp_bn.select_dtypes(include='number').columns
+    dfp_bn = dfp_bn.fillna(0)
+    df_filtered = dfp_bn[~(dfp_bn[numeric_cols] == 0).all(axis=1)]
+
+    # Optional: Reset index
+    df_filtered.reset_index(drop=True, inplace=True)
+
+
+    dfp_bn=pivot(df_net, dimensions=['date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['total_spend'], ascending = [False])
+
+    # dfp_bn.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # table_style(df=dfp_bn.head(50),color =format_color, kpi=format_kpi)
+
+
+    dfp_bn['date'] = dfp_bn['date'].dt.strftime('%Y-%m-%d')
+
+    dfp_bn = dfp_bn.sort_values(by='date')
+
+    dfp_bn.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+
+    # Load your DataFrame (replace this with your actual DataFrame loading code)
+    # Example: df = pd.read_csv('your_file.csv')
+
+    # Identify numeric columns
+    numeric_cols = dfp_bn.select_dtypes(include='number').columns
+
+    dfp_bn = dfp_bn.fillna(0)
+
+
+    # Filter rows where NOT all numeric columns are zero
+    df_filtered_daily = dfp_bn[~(dfp_bn[numeric_cols] == 0).all(axis=1)]
+
+    # Optional: Reset index
+    df_filtered_daily.reset_index(drop=True, inplace=True)
+
+    return df_filtered, df_filtered_daily
+
+
+def presale_weekly_report(client):
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE  Vertical='Crypto' and brand_id!='bestwalletapp'"
+    df_hist = client.query(query).result().to_dataframe()
+    # Convert to datetime
+    df_hist['week_start'] = pd.to_datetime(df_hist['week_start'])
+
+    # Create end_date by adding 6 days
+    df_hist['end_date'] = df_hist['week_start'] + pd.Timedelta(days=6)
+    df_hist['start_date'] = df_hist['week_start']
+
+    df_hist['start_date'] = df_hist['start_date'].dt.strftime('%Y-%m-%d')
+    df_hist['end_date'] = df_hist['end_date'].dt.strftime('%Y-%m-%d')
+    df_hist=df_hist[['start_date', 'end_date','Brand', 'network','impressions', 'clicks', 'total_spend', 'total_revenue','Registration','Deposit', 'Deposit_Sales']]
+    report_metrics=['impressions', 'clicks', 'total_spend','total_revenue','Registration','Deposit', 'Deposit_Sales']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA','Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+
+
+    crypto_network_=pivot(df_hist, dimensions=['start_date','end_date','Brand','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+
+    totals_raw=pivot(crypto_network_, dimensions=['start_date', 'end_date'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw['network'] = ' Total:'
+
+
+    crypto_network = pd.concat([crypto_network_, totals_raw], ignore_index=True)
+    crypto_network=df_cct_rename(crypto_network)
+
+    # Convert to datetime if not already
+    crypto_network['start_date'] = pd.to_datetime(crypto_network['start_date'])
+    crypto_network['end_date'] = pd.to_datetime(crypto_network['end_date'])
+
+    # Create a flag: 0 for normal rows, 1 for totals
+    crypto_network['is_total'] = crypto_network['network'].str.contains("Total", na=False).astype(int)
+
+    # Sort by start_date, end_date, and the flag (totals will be last for each group)
+    crypto_network = crypto_network.sort_values(by=['start_date', 'end_date', 'is_total'])
+
+    # Drop helper column if no longer needed
+    crypto_network = crypto_network.drop(columns='is_total')
+    crypto_network=crypto_network[['start_date', 'end_date', 'Brand','network', 'Impressions', 'Clicks', 'CTR','Total Cost','CPM', 
+           'Registrations',  'Deposits',  'Deposit_Sales',
+           'Registration CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)',
+           'ROI (35%)']]
+
+    crypto_network.columns=['start_date', 'end_date','Brand', 'network', 'Impressions', 'Clicks', 'CTR',
+           'Total_Cost', 'CPM', 'Registrations', 'Deposits',
+           'Deposit_Sales', 'Registration_CPA', 'Deposit_CPA', 'ROAS',
+           'ROAS_35%', 'ROI_35%']
+
+    crypto_network['start_date'] = crypto_network['start_date'].dt.strftime('%Y-%m-%d')
+    crypto_network['end_date'] = crypto_network['end_date'].dt.strftime('%Y-%m-%d')
+
+    crypto_network=crypto_network[(crypto_network['Impressions']>0)|(crypto_network['Clicks']>0)|(crypto_network['Total_Cost']>0)|(crypto_network['Registrations']>0)|(crypto_network['Deposits']>0)|(crypto_network['Deposit_Sales']>0)]
+    crypto_network = clean_dataframe(crypto_network)
+
+    crypto_network_=pivot(df_hist, dimensions=['start_date','end_date','Brand'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw=pivot(crypto_network_, dimensions=['start_date', 'end_date'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw['Brand'] = ' Total:'
+
+
+    bw_crypto_network = pd.concat([crypto_network_, totals_raw], ignore_index=True)
+
+    bw_crypto_network=df_cct_rename(bw_crypto_network)
+    # Assuming your DataFrame is named df and already loaded
+
+    # Convert to datetime if not already
+    bw_crypto_network['start_date'] = pd.to_datetime(bw_crypto_network['start_date'])
+    bw_crypto_network['end_date'] = pd.to_datetime(bw_crypto_network['end_date'])
+
+    # Create a flag: 0 for normal rows, 1 for totals
+    bw_crypto_network['is_total'] = bw_crypto_network['Brand'].str.contains("Total", na=False).astype(int)
+
+    # Sort by start_date, end_date, and the flag (totals will be last for each group)
+    bw_crypto_network = bw_crypto_network.sort_values(by=['start_date', 'end_date', 'is_total'])
+
+    # Drop helper column if no longer needed
+    bw_crypto_network = bw_crypto_network.drop(columns='is_total')
+
+    bw_crypto_network=bw_crypto_network[['start_date', 'end_date', 'Brand', 'Impressions', 'Clicks', 'CTR','Total Cost','CPM', 
+           'Registrations', 'Deposits',  'Deposit_Sales',
+           'Registration CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)',
+           'ROI (35%)']]
+    bw_crypto_network.columns=['start_date', 'end_date','Brand', 'Impressions', 'Clicks', 'CTR',
+           'Total_Cost', 'CPM', 'Registrations', 'Deposits', 
+           'Deposit_Sales', 'Registration_CPA',  'Deposit_CPA', 'ROAS',
+           'ROAS_35%', 'ROI_35%']
+
+    bw_crypto_network['start_date'] = bw_crypto_network['start_date'].dt.strftime('%Y-%m-%d')
+    bw_crypto_network['end_date'] = bw_crypto_network['end_date'].dt.strftime('%Y-%m-%d')
+
+    bw_crypto_network=bw_crypto_network[(bw_crypto_network['Impressions']>0)|(bw_crypto_network['Clicks']>0)|(bw_crypto_network['Total_Cost']>0)|(bw_crypto_network['Registrations']>0)|(bw_crypto_network['Deposits']>0)|(bw_crypto_network['Deposit_Sales']>0)]
+    bw_crypto_network = clean_dataframe(bw_crypto_network)
+
+
+    crypto_network_=pivot(df_hist, dimensions=['start_date','end_date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+
+    totals_raw=pivot(crypto_network_, dimensions=['start_date', 'end_date'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+    totals_raw['network'] = ' Total:'
+
+
+    nw_crypto_network = pd.concat([crypto_network_, totals_raw], ignore_index=True)
+    nw_crypto_network=df_cct_rename(nw_crypto_network)
+
+    # Convert to datetime if not already
+    nw_crypto_network['start_date'] = pd.to_datetime(nw_crypto_network['start_date'])
+    nw_crypto_network['end_date'] = pd.to_datetime(nw_crypto_network['end_date'])
+
+    # Create a flag: 0 for normal rows, 1 for totals
+    nw_crypto_network['is_total'] = nw_crypto_network['network'].str.contains("Total", na=False).astype(int)
+
+    # Sort by start_date, end_date, and the flag (totals will be last for each group)
+    nw_crypto_network = nw_crypto_network.sort_values(by=['start_date', 'end_date', 'is_total'])
+
+    # Drop helper column if no longer needed
+    nw_crypto_network = nw_crypto_network.drop(columns='is_total')
+
+    nw_crypto_network=nw_crypto_network[['start_date', 'end_date', 'network', 'Impressions', 'Clicks', 'CTR','Total Cost','CPM', 
+           'Registrations',  'Deposits',  'Deposit_Sales',
+           'Registration CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)',
+           'ROI (35%)']]
+
+    nw_crypto_network.columns=['start_date', 'end_date','network', 'Impressions', 'Clicks', 'CTR',
+           'Total_Cost', 'CPM', 'Registrations', 'Deposits', 
+           'Deposit_Sales', 'Registration_CPA',  'Deposit_CPA', 'ROAS',
+           'ROAS_35%', 'ROI_35%']
+
+    nw_crypto_network['start_date'] = nw_crypto_network['start_date'].dt.strftime('%Y-%m-%d')
+    nw_crypto_network['end_date'] = nw_crypto_network['end_date'].dt.strftime('%Y-%m-%d')
+
+    nw_crypto_network=nw_crypto_network[(nw_crypto_network['Impressions']>0)|(nw_crypto_network['Clicks']>0)|(nw_crypto_network['Total_Cost']>0)|(nw_crypto_network['Registrations']>0)|(nw_crypto_network['Deposits']>0)|(nw_crypto_network['Deposit_Sales']>0)]
+    nw_crypto_network = clean_dataframe(nw_crypto_network)
+
+    return crypto_network, bw_crypto_network, nw_crypto_network
+
+
