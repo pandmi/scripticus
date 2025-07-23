@@ -3315,3 +3315,72 @@ def presale_weekly_report(client):
     return crypto_network, bw_crypto_network, nw_crypto_network
 
 
+def monthly_brand_report(client):
+    current_date = date.today()
+    start_of_month = pd.Timestamp(current_date).replace(day=1)
+    prev_month = (start_of_month - pd.DateOffset(months=1)).replace(day=1)
+
+    # Apply the condition
+    if current_date.day <= 14:
+        requested_month = prev_month.strftime('%Y_%m')
+    else:
+        requested_month = start_of_month.strftime('%Y_%m')
+    
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE  month='{requested_month}'"
+    df_looker_month = client.query(query).result().to_dataframe()
+
+    date_range = df_looker_month.groupby('month')['date'].agg(start_date='min', end_date='max').reset_index()
+    df_looker_month = df_looker_month.merge(date_range, on='month', how='left')
+
+    report_metrics=['impressions', 'clicks', 'total_spend', 'total_revenue','Registration','WalletConnected','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales', 'Install','SignUp']
+
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI','ROI (35%)']
+
+    crypto_network=pivot(df_looker_month, dimensions=['start_date', 'end_date', 'Vertical', 'brand_id', 'Brand', 'network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+
+    crypto_network=crypto_network[['start_date', 'end_date', 'Vertical', 'brand_id', 'Brand', 
+                                   'network', 'impressions','clicks', 'total_spend','total_revenue',
+                                   'Registration', 'WalletConnected', 'Deposit','Deposit_Sales', 'FTD', 
+                                   'FTD_Sales', 'Install', 'SignUp','CPM', 'CTR', 'CPC', 
+                                   'Registration CPA', 'FTD CPA', 'Deposit CPA',  'ROAS', 'ROAS (35%)','ROI', 'ROI (35%)']]
+
+    crypto_network.columns=['start_date', 'end_date','Vertical', 'brand_id', 'Brand',
+           'network', 'impressions', 'clicks', 'total_spend', 'total_revenue',
+           'Registration', 'WalletConnected', 'Deposit', 'Deposit_Sales', 'FTD',
+           'FTD_Sales', 'Install', 'SignUp', 'CPM', 'CTR', 'CPC',
+           'Registration_CPA', 'FTD_CPA', 'Deposit_CPA', 'ROAS', 'ROAS_35','ROI','ROI_35']
+
+    # Before writing, clean the DataFrame
+    crypto_network = clean_dataframe(crypto_network)
+
+
+    crypto_network=crypto_network[(crypto_network['impressions']>0)|(crypto_network['clicks']>0)|(crypto_network['total_spend']>0)|(crypto_network['Registration']>0)|(crypto_network['FTD']>0)|(crypto_network['Install']>0)|(crypto_network['SignUp']>0)|(crypto_network['Deposit']>0)|(crypto_network['FTD_Sales']>0)|(crypto_network['Deposit_Sales']>0)]
+    return crypto_network
+
+
+def fepe_weekly_report(client):
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.looker_daily_brand_performance`WHERE  brand_id= 'fepe'"
+    df_hist = client.query(query).result().to_dataframe()
+    report_metrics=['impressions', 'clicks', 'total_spend', 'total_revenue','Registration','WalletConnected','Deposit', 'Deposit_Sales', 'FTD','FTD_Sales']
+    report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
+    df_hist['date'] = pd.to_datetime(df_hist['date'])  # Ensure datetime type
+
+    df_hist['week_end'] = df_hist['date'] + pd.to_timedelta(6 - df_hist['date'].dt.weekday, unit='d')
+
+    df_hist['month'] = df_hist['date'].dt.strftime('%m.%Y').astype(str)
+
+    df_hist['week_end'] = df_hist['week_end'].astype(str)
+    df_hist['week_start'] = df_hist['week_start'].astype(str)
+    df_hist['date'] = df_hist['date'].astype(str)
+    crypto_network_=pivot(df_hist, dimensions=['week_start','week_end','month','date','network'],\
+                                   metrics=report_metrics,  kpi = report_kpi, sortby = ['impressions'], ascending = [False])
+
+    crypto_network_=crypto_network_[crypto_network_['impressions']>100]
+
+    crypto_network_=crypto_network_[['date', 'week_start', 'week_end','month', 'network', 'impressions', 'clicks',
+           'total_spend', 'total_revenue', 'Registration', 'WalletConnected',
+           'Deposit', 'Deposit_Sales', 'FTD', 'FTD_Sales']]
+    return crypto_network_
+
+
