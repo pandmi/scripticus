@@ -2997,7 +2997,7 @@ def clean_dataframe(df):
     df = df.replace([np.inf, -np.inf], pd.NA)
 
     # Known string columns (stored as STRING in BQ but may contain numbers in Pandas)
-    string_columns = ["ROAS", "ROAS_35%", "CPC", , "CPM", "ROAS_35"]
+    string_columns = ["ROAS", "ROAS_35%", "CPC", "CPM", "ROAS_35"]
 
     for col in df.columns:
         if col in string_columns:
