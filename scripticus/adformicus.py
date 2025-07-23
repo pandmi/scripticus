@@ -2949,16 +2949,34 @@ def pivoted_brand_daily_report(client):
 
 #SQL Reports
 
+# def clean_dataframe(df):
+#     df = df.replace([np.inf, -np.inf], np.nan)  # Replace infinite values with NaN
+
+#     for col in df.columns:
+#         if pd.api.types.is_numeric_dtype(df[col]):
+#             df[col] = df[col].fillna(0)  # Or another default for numeric
+#         else:
+#             df[col] = df[col].fillna('')  # Only fill empty strings in non-numeric cols
+
+#     return df
+
 def clean_dataframe(df):
-    df = df.replace([np.inf, -np.inf], np.nan)  # Replace infinite values with NaN
+    df = df.replace([np.inf, -np.inf], pd.NA)
 
     for col in df.columns:
         if pd.api.types.is_numeric_dtype(df[col]):
-            df[col] = df[col].fillna(0)  # Or another default for numeric
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         else:
-            df[col] = df[col].fillna('')  # Only fill empty strings in non-numeric cols
+            df[col] = df[col].fillna('')
+    
+    # Force these known columns to string
+    for col in ['ROAS', 'ROAS_35%']:
+        if col in df.columns:
+            df[col] = df[col].astype(str)
 
     return df
+
+
 
 def wsm_weekly_report(client):
     query = f"SELECT * FROM `dwh-landing-v1.paid_media_reports_eu_west_2.raw_wsm_weekly_performance`WHERE start_date < '2025-05-01'"
