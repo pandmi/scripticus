@@ -2974,23 +2974,41 @@ def pivoted_brand_daily_report(client):
 #         if col in df.columns:
 #             df[col] = df[col].astype(str)
 
+# #     return df
+# def clean_dataframe(df):
+#     df = df.replace([np.inf, -np.inf], pd.NA)
+
+#     for col in df.columns:
+#         # Handle known string columns that must be cast
+#         if col in ["ROAS", "ROAS_35%"]:  # Add any known string-masked numeric fields
+#             df[col] = df[col].fillna('').astype(str)
+
+#         # Handle numeric fields
+#         elif pd.api.types.is_numeric_dtype(df[col]) or col in ["CTR", "CPM"]:  # Add any misclassified numeric columns
+#             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+#         else:
+#             df[col] = df[col].fillna('')
+
 #     return df
+
+
 def clean_dataframe(df):
     df = df.replace([np.inf, -np.inf], pd.NA)
 
+    # Known string columns (stored as STRING in BQ but may contain numbers in Pandas)
+    string_columns = ["ROAS", "ROAS_35%", "CPC", , "CPM", "ROAS_35"]
+
     for col in df.columns:
-        # Handle known string columns that must be cast
-        if col in ["ROAS", "ROAS_35%"]:  # Add any known string-masked numeric fields
+        if col in string_columns:
             df[col] = df[col].fillna('').astype(str)
-
-        # Handle numeric fields
-        elif pd.api.types.is_numeric_dtype(df[col]) or col in ["CTR", "CPM"]:  # Add any misclassified numeric columns
+        elif pd.api.types.is_numeric_dtype(df[col]):
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-
         else:
             df[col] = df[col].fillna('')
-
+    
     return df
+
 
 
 
