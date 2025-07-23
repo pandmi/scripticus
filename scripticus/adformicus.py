@@ -2951,7 +2951,13 @@ def pivoted_brand_daily_report(client):
 
 def clean_dataframe(df):
     df = df.replace([np.inf, -np.inf], np.nan)  # Replace infinite values with NaN
-    df = df.fillna('')  # Replace NaN with empty string (or use 0 if preferred)
+
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            df[col] = df[col].fillna(0)  # Or another default for numeric
+        else:
+            df[col] = df[col].fillna('')  # Only fill empty strings in non-numeric cols
+
     return df
 
 def wsm_weekly_report(client):
