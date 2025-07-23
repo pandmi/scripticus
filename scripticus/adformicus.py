@@ -3131,8 +3131,6 @@ def coinpoker_weekly_report(client):
 
     # dfp_bn.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    # table_style(df=dfp_bn.head(50),color =format_color, kpi=format_kpi)
-
 
     dfp_bn['date'] = dfp_bn['date'].dt.strftime('%Y-%m-%d')
 
