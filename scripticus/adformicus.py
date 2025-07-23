@@ -3022,7 +3022,7 @@ def wsm_weekly_report(client):
     crypto_network['end_date'] = crypto_network['end_date'].dt.strftime('%Y-%m-%d')
 
 
-    crypto_network = clean_dataframe(crypto_network)
+    # crypto_network = clean_dataframe(crypto_network)
 
     crypto_network=crypto_network[(crypto_network['Impressions']>0)|(crypto_network['Clicks']>0)|(crypto_network['Total_Cost']>0)|(crypto_network['Registrations']>0)|(crypto_network['FTD']>0)|(crypto_network['Deposits']>0)|(crypto_network['FTD_Sales']>0)|(crypto_network['Deposit_Sales']>0)]
 
