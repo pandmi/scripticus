@@ -27,6 +27,7 @@ import requests
 import seaborn as sns
 import time
 import ast
+from io import BytesIO
 
 # Singular
 
