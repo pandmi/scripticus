@@ -2488,37 +2488,71 @@ def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_wi
         return "No report link found."
 
 
-def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS,SENDER_EMAIL,SUBJECT, first_cell):
-    mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
-    csv_attachment = fetch_csv_attachments(mail,SENDER_EMAIL, SUBJECT)
-    if csv_attachment:
+def extract_second_token_if_underscore(brand):
+    if "_" in brand:
+        parts = brand.split("_")
+        return parts[1] if len(parts) > 1 else brand
+    return brand
+
+
+def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, first_cell):
+    mail = None
+    try:
+        mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+        if not hasattr(mail, "select"):
+            return f"Connection error: {mail}"
+
+        csv_attachment = fetch_csv_attachments(mail, SENDER_EMAIL, SUBJECT)
+
+        if isinstance(csv_attachment, str):  # Error message
+            return csv_attachment
+
         filename, data = csv_attachment
-        df_cmc = load_csv_dataframe(data, first_cell)
-        if df_cmc is not None:
-            df_cmc['Brand']=df_cmc['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-            df_cmc['Brand_creative']=df_cmc['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-            df_cmc['Brand'] = np.where(~df_cmc['Brand'].str.contains('gamingbutton|sponsoredsearch'),  df_cmc['Brand'], df_cmc['Brand_creative'])
-            df_cmc['network'] = np.where(df_cmc['Line item'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
-            df_cmc['impressions']=df_cmc['Ad server impressions']
-            df_cmc['date']= pd.to_datetime(df_cmc['Date'], format="%m/%d/%y", errors="coerce").dt.strftime("%Y-%m-%d")
-            df_cmc['impressions']=df_cmc['impressions'].str.replace(',', '')
-            df_cmc['impressions'] = df_cmc['impressions'].replace('n/a', 0)
-            df_cmc['clicks']=df_cmc['Ad server clicks'].str.replace(',', '')
-            df_cmc['clicks'] = df_cmc['clicks'].replace('n/a', 0)
-            df_cmc['impressions']=df_cmc['impressions'].astype(int)
-            df_cmc['clicks']=df_cmc['clicks'].astype(int)
-            df_cmc['impressions_cmc']=df_cmc['impressions'].astype(int)
-            df_cmc['clicks_cmc']=df_cmc['clicks'].astype(int)
-            df_cmc=calculate_cpm_spend(df_cmc)
-            df_cmc['impressions_cmc']=df_cmc['impressions']
-            df_cmc['clicks_cmc']=df_cmc['clicks']
-            df_cmc['total_spend_cmc']=df_cmc['total_spend']
-            df_cmc=df_cmc[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
-            return df_cmc
-        else:
-            return "Failed to parse CSV."
-    else:
-        return "No CSV attachments found."
+        df = load_csv_dataframe(data, first_cell)
+
+        if not isinstance(df, pd.DataFrame):
+            return f"CSV load error: {df}"
+
+        # === Data cleaning ===
+        df['Brand'] = df['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+        df['Brand_creative'] = df['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+        
+        df['Brand'] = df['Brand'].apply(extract_second_token_if_underscore)
+
+        df['Brand'] = np.where(~df['Brand'].str.contains('gamingbutton|sponsoredsearch'), df['Brand'], df['Brand_creative'])
+
+        df['network'] = np.where(df['Line item'].str.contains('Coingecko|CoinGecko'), 'Coingecko (Media)', 'Geckoterminal (Media)')
+
+        df['impressions'] = df['Ad server impressions'].str.replace(',', '', regex=False).replace('n/a', 0)
+        df['clicks'] = df['Ad server clicks'].str.replace(',', '', regex=False).replace('n/a', 0)
+
+        df['impressions'] = df['impressions'].astype(int)
+        df['clicks'] = df['clicks'].astype(int)
+
+        df['impressions_cmc'] = df['impressions']
+        df['clicks_cmc'] = df['clicks']
+
+        df['date'] = pd.to_datetime(df['Date'], errors="coerce").dt.strftime("%Y-%m-%d")
+
+        df = calculate_cpm_spend(df)
+        df['total_spend_cmc'] = df['total_spend']
+
+        df_grouped = df[['date', 'network', 'Brand', 'impressions_cmc', 'clicks_cmc', 'total_spend_cmc']] \
+            .groupby(['date', 'network', 'Brand']) \
+            .sum().reset_index()
+
+        return df_grouped
+
+    except Exception as e:
+        return f"Unhandled exception in gmail_get_cgkgam_report: {e}"
+
+    finally:
+        # Safe logout only if mail was opened successfully
+        if mail and hasattr(mail, "logout"):
+            try:
+                mail.logout()
+            except Exception:
+                pass
 
 
 # Report Daily Performance
