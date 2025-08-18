@@ -2621,7 +2621,7 @@ def cl_brand_report(client, start_date, end_date):
     df_pers = client.query(query).result().to_dataframe()
 
     # Google Ads & Twitter & Apple
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.googleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.googleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and Brand!='bestwalletapp'"
     df_gads = client.query(query).result().to_dataframe()
     query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.appleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_apple = client.query(query).result().to_dataframe()
