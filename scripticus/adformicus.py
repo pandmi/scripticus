@@ -1991,7 +1991,7 @@ def fetch_googleads_report(client, start_date, end_date):
         'GBP': 'GBP_to_USD'}, inplace=True)
     df_gads=df_convert_currency(df_gads, df_rates)
     df_gads=df_gads[['date','network','Brand','adv_impressions','adv_clicks','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
-    df_gads=df_gads[(df_gads['Brand']=='bestwalletapp')|(df_gads['Brand']=='jemlit')]
+    df_gads=df_gads[(df_gads['Brand']=='jemlit')]
     df_gads=df_gads[(df_gads['date']>=start_date)&(df_gads['date']<=end_date)]
     df_gads['date'] = pd.to_datetime(df_gads['date'])
     return df_gads
