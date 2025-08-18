@@ -2621,8 +2621,8 @@ def cl_brand_report(client, start_date, end_date):
     df_pers = client.query(query).result().to_dataframe()
 
     # Google Ads & Twitter & Apple
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.googleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and Brand!='bestwalletapp'"
-    df_gads = client.query(query).result().to_dataframe()
+    # query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.googleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and Brand!='bestwalletapp'"
+    # df_gads = client.query(query).result().to_dataframe()
     query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.appleads_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_apple = client.query(query).result().to_dataframe()
     query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.twitter_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
@@ -2642,7 +2642,8 @@ def cl_brand_report(client, start_date, end_date):
     df_mmf = client.query(query).result().to_dataframe()
     
     # 3.  Adform + DSP Data
-    df_dsps_api_ = pd.concat([df_cz_all, df_mmf, df_hpef, df_m2o, df_vz,df_bsw, df_p161, df_fbtw, df_fb, df_gads, df_pers, df_excl,df_mol,df_apple,df_ctrf], ignore_index=True)
+    df_dsps_api_ = pd.concat([df_cz_all, df_mmf, df_hpef, df_m2o, df_vz,df_bsw, df_p161, df_fbtw, df_fb, df_pers, df_excl,df_mol,df_apple,df_ctrf], ignore_index=True)
+    # df_dsps_api_ = pd.concat([df_cz_all, df_mmf, df_hpef, df_m2o, df_vz,df_bsw, df_p161, df_fbtw, df_fb, df_gads, df_pers, df_excl,df_mol,df_apple,df_ctrf], ignore_index=True)
     df_dsps_api=df_dsps_api_[['date', 'network','Brand','total_spend','total_spend_campaign_currency', 'adv_clicks', 'adv_impressions','adv_installs', 'mm_installs']].groupby(['date','network','Brand']).sum().reset_index()
     df_dsps_api = df_dsps_api.rename(columns={'total_spend': 'total_spend_dsp'})
     df_dsps_api = df_dsps_api.drop('total_spend_campaign_currency', axis=1)
