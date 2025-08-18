@@ -1834,7 +1834,7 @@ def mol_get_brand_stats(API_KEY, AD_ACCOUNT_ID, start_date, end_date):
         df_mol = pd.read_csv(StringIO(csv_data))  
         df_mol=df_columns_rename(df_mol)
         df_mol['date']=df_mol['date']
-        df_mol['Brand'] = df_mol['Campaign_Title']
+        df_mol['Brand'] = df_mol['Campaign_Title'].str.split('_').str[1]
         df_mol['Brand']=df_mol['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
         df_mol['Brand']=df_mol['Brand'].apply(brand_clean_polish)
         df_mol = add_presale_to_brand(df_mol,  external_column='Brand')
