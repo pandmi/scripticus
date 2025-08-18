@@ -516,8 +516,6 @@ def get_m2o_report(email, password, start_date, end_date):
 
 # Coinzilla
 
-
-
 def cz_create_token(command, access_key, secret_key, body=None):
     timestamp = int(time.time())  # Current Unix timestamp in seconds
     body = ''  # Empty body if not provided
@@ -2384,14 +2382,14 @@ def download_csv_to_dataframe(url):
 
 
 
-def fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with):
+def fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, link_starts_with):
     try:
         today_str = datetime.now(pytz.UTC).strftime("%d-%b-%Y")
         mail = connect_to_gmail(EMAIL_USER, EMAIL_PASS)
         mail.select('"[Gmail]/All Mail"')
 
         # Search for emails from the sender since today
-        status, data = mail.search(None, f'(FROM "{SENDER_EMAIL}" SINCE "{today_str}")')
+        status, data = mail.search(None, f'(FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}" SINCE "{today_str}")')
         if status != "OK":
             return None
 
@@ -2461,26 +2459,39 @@ def fetch_latest_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_w
         print(f"Error: {e}")
         return None
     
-def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with):
-    report_link = fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, link_starts_with)
+def gmail_get_linked_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, link_starts_with):
+    report_link = fetch_todays_report_imap(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL,SUBJECT, link_starts_with)
     if report_link:
         df_imps_cgk = download_csv_to_dataframe(report_link)
         if df_imps_cgk is not None:
-            df_imps_cgk['Brand'] = df_imps_cgk.apply(lambda row: "coinpoker" if row['Advertiser'] == "Finixio - CoinPoker" 
-                else brand_clean_polish(brand_cleanup(row['Campaign'].replace(' ', '').lower())), axis=1)
-
-            df_imps_cgk['Brand_creative']=df_imps_cgk['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-            df_imps_cgk['Brand'] = np.where(~df_imps_cgk['Brand'].str.contains('gamingbutton|sponsoredsearch'),  df_imps_cgk['Brand'], df_imps_cgk['Brand_creative'])
-
-            df_imps_cgk['network'] = np.where(df_imps_cgk['Campaign'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
+            df_imps_cgk['Creative'] = df_imps_cgk['Creative'].str.replace(' ', '')
+            df_imps_cgk['Brand'] = df_imps_cgk['Creative'].str.split('_').str[2].apply(brand_clean_polish).apply(brand_cleanup)
+            df_imps_cgk['creative_id'] = df_imps_cgk['Creative'].str.split('_').str[0]
+            df_imps_cgk['network'] = np.where(df_imps_cgk['Campaign'].str.contains('CG'),  'Coingecko (Media)', 'Geckoterminal (Media)')
             df_imps_cgk['impressions']=df_imps_cgk['Impressions']
             df_imps_cgk['date']=df_imps_cgk['Date']
-            df_imps_cgk=calculate_cpm_spend(df_imps_cgk)
             df_imps_cgk['impressions_cmc']=df_imps_cgk['impressions']
             df_imps_cgk['clicks_cmc']=df_imps_cgk['Clicks']
-
+            df_imps_cgk['total_spend'] = df_imps_cgk['Revenue'].str.replace('$', '').astype(float)
             df_imps_cgk['total_spend_cmc']=df_imps_cgk['total_spend']
-            df_imps_cgk=df_imps_cgk[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
+            df_imps_cgk=df_imps_cgk[['date','network','Brand','creative_id','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand', 'creative_id']).sum().reset_index()
+            df_imps_cgk['date'] = pd.to_datetime(df_imps_cgk['date'])
+            
+            # df_imps_cgk['Brand'] = df_imps_cgk.apply(lambda row: "coinpoker" if row['Advertiser'] == "Finixio - CoinPoker" 
+            #     else brand_clean_polish(brand_cleanup(row['Campaign'].replace(' ', '').lower())), axis=1)
+
+            # df_imps_cgk['Brand_creative']=df_imps_cgk['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+            # df_imps_cgk['Brand'] = np.where(~df_imps_cgk['Brand'].str.contains('gamingbutton|sponsoredsearch'),  df_imps_cgk['Brand'], df_imps_cgk['Brand_creative'])
+
+            # df_imps_cgk['network'] = np.where(df_imps_cgk['Campaign'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
+            # df_imps_cgk['impressions']=df_imps_cgk['Impressions']
+            # df_imps_cgk['date']=df_imps_cgk['Date']
+            # df_imps_cgk=calculate_cpm_spend(df_imps_cgk)
+            # df_imps_cgk['impressions_cmc']=df_imps_cgk['impressions']
+            # df_imps_cgk['clicks_cmc']=df_imps_cgk['Clicks']
+
+            # df_imps_cgk['total_spend_cmc']=df_imps_cgk['total_spend']
+            # df_imps_cgk=df_imps_cgk[['date','network','Brand','impressions_cmc', 'clicks_cmc','total_spend_cmc']].groupby(['date','network','Brand']).sum().reset_index()
             
             return df_imps_cgk
         else:
@@ -2515,12 +2526,18 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, first
             return f"CSV load error: {df}"
 
         # === Data cleaning ===
-        df['Brand'] = df['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-        df['Brand_creative'] = df['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-        
-        df['Brand'] = df['Brand'].apply(extract_second_token_if_underscore)
-
-        df['Brand'] = np.where(~df['Brand'].str.contains('gamingbutton|sponsoredsearch'), df['Brand'], df['Brand_creative'])
+        df['date'] = pd.to_datetime(df['Date'], errors="coerce").dt.strftime("%Y-%m-%d")
+        df=df[df['date']>'2025-07-31']
+        df['Creative'] = df['Creative'].str.replace(' ', '')
+        df['Brand'] = df['Creative'].str.split('_').str[2].apply(brand_clean_polish).apply(brand_cleanup)
+        df['creative_id'] = df['Creative'].str.split('_').str[0]
+        df['network'] = np.where(df['Line item'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
+        df['impressions']=df['Ad server impressions']
+       
+        # df['Brand'] = df['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+        # df['Brand_creative'] = df['Creative'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+        # df['Brand'] = df['Brand'].apply(extract_second_token_if_underscore)
+        # df['Brand'] = np.where(~df['Brand'].str.contains('gamingbutton|sponsoredsearch'), df['Brand'], df['Brand_creative'])
 
         df['network'] = np.where(df['Line item'].str.contains('Coingecko|CoinGecko'), 'Coingecko (Media)', 'Geckoterminal (Media)')
 
@@ -2532,14 +2549,14 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, first
 
         df['impressions_cmc'] = df['impressions']
         df['clicks_cmc'] = df['clicks']
+     
+        # df = calculate_cpm_spend(df)
+        # df['total_spend_cmc'] = df['total_spend']
+        df['total_spend_cmc']=df['Ad server CPM and CPC revenue ($)'].astype(float)
 
-        df['date'] = pd.to_datetime(df['Date'], errors="coerce").dt.strftime("%Y-%m-%d")
 
-        df = calculate_cpm_spend(df)
-        df['total_spend_cmc'] = df['total_spend']
-
-        df_grouped = df[['date', 'network', 'Brand', 'impressions_cmc', 'clicks_cmc', 'total_spend_cmc']] \
-            .groupby(['date', 'network', 'Brand']) \
+        df_grouped = df[['date', 'network', 'Brand', 'creative_id','impressions_cmc', 'clicks_cmc', 'total_spend_cmc']] \
+            .groupby(['date', 'network', 'Brand', 'creative_id']) \
             .sum().reset_index()
 
         return df_grouped
