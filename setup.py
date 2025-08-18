@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="scripticus",
-    version="4.3.7",
+    version="4.3.8",
     author="Dmitry Pankov",
     author_email="dp@pandmi.com",
     description="A package for working with the MediaMath T1 ecosystem, creating reports, dashboards, and automating campaign optimization.",
@@ -25,5 +25,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent"
     ],)
+
 
 
