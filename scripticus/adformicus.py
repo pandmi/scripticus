@@ -2704,10 +2704,10 @@ def cl_brand_report(client, start_date, end_date):
     df_cmc.fillna(0, inplace=True)
 
     # Geckoterminal
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.cgk_adzerk_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT date, network, Brand, sum(impressions_cmc) impressions_cmc, sum(clicks_cmc) clicks_cmc, sum(total_spend_cmc) total_spend_cmc FROM `dwh-landing-v1.paid_media_network_raw.cgk_adzerk_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'  GROUP BY date, network, Brand"
     df_imps_cgk = client.query(query).result().to_dataframe()
     df_imps_cgk.fillna(0, inplace=True)
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.cgk_gam_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT date, network, Brand, sum(impressions_cmc) impressions_cmc, sum(clicks_cmc) clicks_cmc, sum(total_spend_cmc) total_spend_cmc FROM `dwh-landing-v1.paid_media_network_raw.cgk_gam_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' GROUP BY date, network, Brand"
     df_imps_gam = client.query(query).result().to_dataframe()
     df_imps_gam.fillna(0, inplace=True)
     df_cggam = pd.concat([df_imps_cgk, df_imps_gam], ignore_index=True)
