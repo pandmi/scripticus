@@ -1140,7 +1140,32 @@ def brand_clean_polish(value):
         #     return value_str.replace('presale', '-presale') if '-presale' not in value_str else value_str
         return value_str
 
+import re
 
+def extract_banner_size(banner_name):
+    # List of allowed banner sizes
+    banner_sizes = [
+        "300x250",
+        "320x50",
+        "320x100",
+        "728x90",
+        "300x600",
+        "160x600",
+        "970x250",
+        "970x90",
+        "300x250",
+        "1920x1080",
+        "300x50"
+        
+    ]
+    # Combine the banner sizes into a regex pattern
+    pattern = r'\b(' + '|'.join(re.escape(size) for size in banner_sizes) + r')\b'
+    
+    # Search for the pattern in the banner name
+    match = re.search(pattern, banner_name)
+    
+    # Return the matched size or None
+    return match.group(0) if match else None
 
 
 
