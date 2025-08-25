@@ -2027,7 +2027,7 @@ def fetch_appleads_report(client, start_date, end_date):
     df_apple['date'] = df_apple['date_day'].dt.date
     df_apple['network']='Apple Search Ads'
     df_apple['adv_impressions']=df_apple['impressions']
-    df_apple['adv_clicks']=0
+    df_apple['adv_clicks']=df_apple['taps']
     df_apple=df_apple.fillna(0)
     df_apple['total_spend']=df_apple['spend']
     df_apple['total_spend'] = df_apple['spend'].replace('n/a', 0)
