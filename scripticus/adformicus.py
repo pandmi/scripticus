@@ -98,9 +98,8 @@ def sng_source2networks(value):
         'coincarp(custom)':'CoinCarp (Media)',
         'adwords':'Google Ads',
         'exoclick': 'Exoclick',
-         'exoclick(custom)': 'Exoclick'
-
-
+        'exoclick(custom)': 'Exoclick',
+        'bitcoin.com(custom)': 'bitcoin.com (Media)'
     }
     
     value_str = str(value)  # Convert value to string for substring checks
@@ -123,7 +122,7 @@ def sng_get_brand_conversion_stats(api_key, dimensions, metrics, cohort_metrics,
     df_sing['2760dafd981b4ae8988469327363bfd8'] = df_sing['2760dafd981b4ae8988469327363bfd8'].apply(ast.literal_eval)
     df_sing['custom_signups'] = df_sing['2760dafd981b4ae8988469327363bfd8'].apply(lambda x: int(x['ltv']) if x['ltv'] is not None else 0)
     df_sing['revenue'] = df_sing['revenue'].apply(ast.literal_eval)
-    df_sing['custom_revenue'] = df_sing['revenue'].apply(lambda x: int(x['ltv']) if x['ltv'] is not None else 0)
+    df_sing['custom_revenue'] = df_sing['revenue'].apply(lambda x: float(x['ltv']) if x['ltv'] is not None else 0)
     df_sing=df_sing[['date','network','Brand','custom_installs', 'custom_signups']].groupby(['date','network','Brand']).sum().reset_index()
     df_sing=df_sing[df_sing['Brand']=='bestwalletapp']
     
@@ -136,7 +135,7 @@ def sng_get_brand_conversion_stats(api_key, dimensions, metrics, cohort_metrics,
     df_sing_act['2760dafd981b4ae8988469327363bfd8'] = df_sing_act['2760dafd981b4ae8988469327363bfd8'].apply(ast.literal_eval)
     df_sing_act['custom_signups'] = df_sing_act['2760dafd981b4ae8988469327363bfd8'].apply(lambda x: int(x['actual']) if x['actual'] is not None else 0)
     df_sing_act['revenue'] = df_sing_act['revenue'].apply(ast.literal_eval)
-    df_sing_act['custom_revenue'] = df_sing_act['revenue'].apply(lambda x: int(x['actual']) if x['actual'] is not None else 0)
+    df_sing_act['custom_revenue'] = df_sing_act['revenue'].apply(lambda x: float(x['actual']) if x['actual'] is not None else 0)
     df_sing_act=df_sing_act[['date','network','Brand','custom_revenue']].groupby(['date','network','Brand']).sum().reset_index()
     df_sing_act=df_sing_act[df_sing_act['Brand']=='bestwalletapp']
     df_sing=pd.merge(df_sing, df_sing_act,  how='left', left_on=['date','Brand','network'], right_on=['date','Brand','network'])
