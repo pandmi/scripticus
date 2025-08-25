@@ -2619,7 +2619,12 @@ def cl_brand_report(client, start_date, end_date):
     df_cz_pm = client.query(query).result().to_dataframe()
     query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_icpaidmedia_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_cz_ic = client.query(query).result().to_dataframe()
-    df_cz_fin = pd.concat([df_cz_ps,df_cz,df_cz_pm, df_cz_ic], ignore_index=True)
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_cppaidmedia_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz_cppm = client.query(query).result().to_dataframe()
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinzilla_networkpaidmedia_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_cz_nkpm = client.query(query).result().to_dataframe()
+    
+    df_cz_fin = pd.concat([df_cz_ps,df_cz,df_cz_pm, df_cz_ic, df_cz_cppm,df_cz_nkpm], ignore_index=True)
     df_cz_fin['date'] = pd.to_datetime(df_cz_fin['date'])
     df_cz_psf=df_cz_fin[['date','network','Brand','total_spend']].groupby(['date','network','Brand']).sum().reset_index()
     df_cz_psf['total_spend_campaign_currency']=df_cz_psf['total_spend']
