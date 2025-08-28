@@ -3066,7 +3066,7 @@ def pivoted_brand_daily_report(client, current_date, networks, exclude):
     return final_df
 
 
-def full_pivoted_brand_daily_report(client, current_date, networks=networks):
+def full_pivoted_brand_daily_report(client, current_date, networks):
     df=pivoted_brand_daily_report(client, current_date, networks=False,exclude=False)
     df_net=pivoted_brand_daily_report(client, current_date, networks=networks,exclude=False)
     df_excl=pivoted_brand_daily_report(client, current_date, networks=False,exclude=networks)
