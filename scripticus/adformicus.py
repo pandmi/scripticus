@@ -2829,7 +2829,7 @@ def cl_brand_report(client, start_date, end_date):
         'nokyc':'NO KYC',
         'bestwalletapp-presale':'BestWalletApp-Presale',
         'memeindex':'Meme Index',
-        'coincasino':'Coin.Casino'}
+        'coincasino':'CoinCasino'}
 
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='thehighroller', 'Casino', df_w_cost['Vertical'])
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='pepeunchained', 'Crypto', df_w_cost['Vertical'])
