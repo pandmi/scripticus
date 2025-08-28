@@ -2899,7 +2899,7 @@ def agg_df(df, group_keys, metric_columns, all_metrics, date_filter, label):
     return long_df
 
 
-def pivoted_brand_daily_report(client, current_date, networks, exclude):
+def pivoted_brand_daily_report(client, current_date, networks=None, exclude=None):
     # Define date ranges
     start_of_month = pd.Timestamp(current_date).replace(day=1)
     prev_month = (start_of_month - pd.DateOffset(months=1)).replace(day=1)
