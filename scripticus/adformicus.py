@@ -2189,7 +2189,7 @@ def fetch_fix_spend(client, start_date, end_date):
    
     df_dex_fix_ds=df_dex_fix[['date','network','Brand','impressions']].groupby(['date','network','Brand']).sum().reset_index()
     df_fs_corr_fix_dict_dex=pd.merge(df_dex_fix_ds, df_fix_budget_rest,  how='left', left_on=['network'], right_on=['network'])
-    df_fs_corr_fix_dict_dex=df_fs_corr_fix_dict_dex[(df_fs_corr_fix_dict_dex['monthly_budget']>0)&(df_fs_corr_fix_dict_dex['impressions']>10000)]
+    df_fs_corr_fix_dict_dex=df_fs_corr_fix_dict_dex[(df_fs_corr_fix_dict_dex['monthly_budget']>0)&(df_fs_corr_fix_dict_dex['impressions']>10)]
     df_fs_corr_fix_dict_dex['total_impressions'] = df_fs_corr_fix_dict_dex.groupby([ 'date','network'])['impressions'].transform('sum')
     df_fs_corr_fix_dict_dex['fix_allocated_budget'] = (df_fs_corr_fix_dict_dex['impressions'] / df_fs_corr_fix_dict_dex['total_impressions']) * df_fs_corr_fix_dict_dex['daily_budget']
     df_fs_corr_fix_dict_dex=df_fs_corr_fix_dict_dex[['date','network', 'Brand', 'fix_allocated_budget','impressions']]
