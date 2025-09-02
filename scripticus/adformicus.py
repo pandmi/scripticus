@@ -2553,7 +2553,7 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, first
         df['date'] = pd.to_datetime(df['Date'], errors="coerce").dt.strftime("%Y-%m-%d")
         df=df[df['date']>'2025-07-31']
         df['Creative'] = df['Creative'].str.replace(' ', '')
-        df['Brand'] = df['Line item'].str.split('_').str[1].apply(brand_clean_polish).apply(brand_cleanup)
+        df['Brand']=df['Line item'].str.replace(' ', '').str.lower().apply(af.brand_cleanup).apply(af.brand_clean_polish)
         df['creative_id'] = df['Creative'].str.split('_').str[0]
         df['network'] = np.where(df['Line item'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
         df['impressions']=df['Ad server impressions']
@@ -2829,7 +2829,8 @@ def cl_brand_report(client, start_date, end_date):
         'nokyc':'NO KYC',
         'bestwalletapp-presale':'BestWalletApp-Presale',
         'memeindex':'Meme Index',
-        'coincasino':'CoinCasino'}
+        'coincasino':'CoinCasino',
+        'Coincasino':'CoinCasino'}
 
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='thehighroller', 'Casino', df_w_cost['Vertical'])
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='pepeunchained', 'Crypto', df_w_cost['Vertical'])
