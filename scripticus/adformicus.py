@@ -1687,7 +1687,12 @@ def df_cct_rename(df):
                            'Registration': 'Registrations' ,'Deposit': 'Deposits' ,'Deposit Conversion': 'Deposits' ,'Walletconnected': 'WalletConnect' }) 
     return df
 
-
+def build_month(row):
+    if row["month"] == "January":
+        year = row["end_date"].year
+    else:
+        year = row["start_date"].year
+    return f"{year}_{month_map[row['month']]}"
 
 def df_format_campaign(df):
     df['Buyer'] = df['campaign_name'].str.split('_').str[1]
