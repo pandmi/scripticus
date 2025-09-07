@@ -1687,6 +1687,12 @@ def df_cct_rename(df):
                            'Registration': 'Registrations' ,'Deposit': 'Deposits' ,'Deposit Conversion': 'Deposits' ,'Walletconnected': 'WalletConnect' }) 
     return df
 
+month_map = {
+    "January": "01", "February": "02", "March": "03", "April": "04",
+    "May": "05", "June": "06", "July": "07", "August": "08",
+    "September": "09", "October": "10", "November": "11", "December": "12"
+}
+
 def build_month(row):
     if row["month"] == "January":
         year = row["end_date"].year
