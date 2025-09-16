@@ -1072,6 +1072,7 @@ def brand_cleanup(value, add_presale=False):
     'snortertoken': 'snorter',
     'bitcoinhyper': 'bitcoinhyper',
     'bovada': 'bovada',
+    'maxydoge': 'maxidoge',
     'fepe': 'fepe',
     'tonaldtrumps': 'tonaldtrump',
     'no-kyc': 'nokyc',
