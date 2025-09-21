@@ -2692,7 +2692,7 @@ def _extract_csv_links(text):
     return list(links)
 
 
-def fetch_todays_report(mail):
+def fetch_todays_report(mail, SENDER_EMAIL,SUBJECT):
     """
     Using an authenticated IMAP connection `mail`, find the most recent
     'Coingecko Finixio Report' email from SENDER_EMAIL, parse its HTML (or text)
@@ -2889,7 +2889,7 @@ def get_report_as_df(download_url: str, is_cloud_function: bool = False) -> pd.D
         if not is_cloud_function:
             temp_dir_manager.cleanup() # Deletes the temporary folder and its contents
 
-def get_bydata_gam_report(mail,oncloud=True):
+def get_bydata_gam_report(mail,SENDER_EMAIL,SUBJECT,oncloud=True):
     link = fetch_todays_report(mail)
     df = get_report_as_df(report_link,  is_cloud_function=oncloud)
     return df
