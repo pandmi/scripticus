@@ -2692,71 +2692,123 @@ def _extract_csv_links(text):
     return list(links)
 
 
-def fetch_todays_report(mail, sender_email, subject_filter):
+def fetch_todays_report(mail, SENDER_EMAIL, SUBJECT):
     """
-    Finds the most recent report email and extracts the download link.
+    Using an authenticated IMAP connection `mail`, find the most recent
+    'Coingecko Finixio Report' email from SENDER_EMAIL, parse its HTML (or text)
+    body, and return ONLY the true link target (href) — not the visible filename
+    label — HTML-unescaped.
     """
     try:
+        # 1) Select inbox and search by FROM + SUBJECT
         status, _ = mail.select("INBOX")
-        if status != "OK": return None
+        if status != "OK":
+            return None
 
-        criteria = f'(FROM "{sender_email}" SUBJECT "{subject_filter}")'
+        # IMAP search: wrap values in quotes; SUBJECT matches substring
+        criteria = f'(FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}*")'
         status, data = mail.search(None, criteria)
-        if status != "OK" or not data or not data[0]: return None
+        if status != "OK" or not data or not data[0]:
+            return None
 
         ids = data[0].split()
-        if not ids: return None
+        if not ids:
+            return None
 
+        # Helper: decode bytes -> str with best-effort charset handling
         def _decode_part_bytes(payload_bytes, charset):
-            if not payload_bytes: return ""
-            enc = (charset or "utf-8").lower()
+            if not payload_bytes:
+                return ""
+            enc = (charset or "utf-8").strip().lower()
             try:
                 return payload_bytes.decode(enc, errors="replace")
             except Exception:
-                return payload_bytes.decode("utf-8", errors="replace")
+                # Last resort
+                try:
+                    return payload_bytes.decode("utf-8", errors="replace")
+                except Exception:
+                    return ""
 
+        # Iterate newest-first (IMAP returns ascending by default)
         for msg_id in reversed(ids):
             status, msg_data = mail.fetch(msg_id, "(RFC822)")
-            if status != "OK": continue
-
-            msg = email.message_from_bytes(msg_data[0][1])
-            raw_subj = msg.get("Subject", "")
-            subject_val = str(make_header(decode_header(raw_subj)))
-
-            if not subject_val.startswith(subject_filter):
+            if status != "OK" or not msg_data or not msg_data[0]:
                 continue
 
-            html_bodies, text_bodies = [], []
+            raw_email = msg_data[0][1]
+            msg = email.message_from_bytes(raw_email)
+
+            # Decode and verify subject starts with SUBJECT (your original filter)
+            raw_subj = msg.get("Subject", "")
+            try:
+                subject_val = str(make_header(decode_header(raw_subj)))
+            except Exception:
+                subject_val = raw_subj or ""
+
+            if not subject_val.startswith(SUBJECT):
+                continue
+
+            # Collect all text/plain and text/html parts
+            html_bodies = []
+            text_bodies = []
+
             if msg.is_multipart():
                 for part in msg.walk():
-                    ctype = part.get_content_type().lower()
+                    ctype = (part.get_content_type() or "").lower()
                     if ctype in ("text/plain", "text/html"):
-                        payload = part.get_payload(decode=True)
-                        body = _decode_part_bytes(payload, part.get_content_charset())
-                        if ctype == "text/html": html_bodies.append(body)
-                        else: text_bodies.append(body)
+                        payload = part.get_payload(decode=True)  # bytes
+                        charset = part.get_content_charset()
+                        body = _decode_part_bytes(payload, charset)
+                        if ctype == "text/html":
+                            html_bodies.append(body)
+                        else:
+                            text_bodies.append(body)
             else:
-                ctype = msg.get_content_type().lower()
+                # Single-part message
+                ctype = (msg.get_content_type() or "").lower()
                 payload = msg.get_payload(decode=True)
-                body = _decode_part_bytes(payload, msg.get_content_charset())
-                if ctype == "text/html": html_bodies.append(body)
-                elif ctype == "text/plain": text_bodies.append(body)
+                charset = msg.get_content_charset()
+                body = _decode_part_bytes(payload, charset)
+                if ctype == "text/html":
+                    html_bodies.append(body)
+                elif ctype == "text/plain":
+                    text_bodies.append(body)
 
+            # 1) Prefer HTML: parse anchors and return *only* the true href
             for html_part in html_bodies:
                 soup = BeautifulSoup(html_part, "html.parser")
                 for a in soup.find_all("a", href=True):
-                    href = html.unescape(a["href"]).strip()
-                    if href and (".csv" in href.lower() or "download" in href.lower()):
-                        return href.strip('<>')
+                    href = ihtml.unescape(a["href"]).strip()
+                    anchor_text = (a.get_text() or "").strip()
 
+                    if href:
+                        if (
+                            href.lower().endswith(".csv")
+                            or "download" in href.lower()
+                            or re.search(r"\.csv\b", anchor_text, flags=re.I)
+                        ):
+                            return href.lstrip("<").rstrip(">")
+
+            # 2) Fallback: scan combined HTML+text as plain text for quoted href=...
             combined = "\n".join(html_bodies + text_bodies)
-            m = re.search(r'href=[\'"]([^\'"]+\.csv[^\'"]*)[\'"]', combined, flags=re.I)
-            if m: return html.unescape(m.group(1)).strip('<>')
-            m = re.search(r'(https?://[^\s\'">]+\.csv[^\s\'">]*)', combined, flags=re.I)
-            if m: return m.group(1).strip('<>')
-    except Exception as e:
-        print(f"Error fetching email report: {e}")
+            m = re.search(r'href=[\'"]([^\'"]+)[\'"]', combined, flags=re.I)
+            if m:
+                link = ihtml.unescape(m.group(1)).strip()
+                return link.lstrip("<").rstrip(">")
+
+            # 3) Last resort: look for a bare URL
+            m = re.search(r'(https?://[^\s\'">]+)', combined, flags=re.I)
+            if m:
+                link = ihtml.unescape(m.group(1)).strip().rstrip(').,]').lstrip("<").rstrip(">")
+                return link
+
+    except imaplib.IMAP4.error:
+        # Authentication or IMAP-level error — mirror your original behavior
         return None
+    except Exception:
+        # Any other parsing/network hiccup
+        return None
+
     return None
 
 def get_report_as_df(download_url: str, is_cloud_function: bool = False) -> pd.DataFrame:
