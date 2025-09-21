@@ -2889,8 +2889,7 @@ def get_report_as_df(download_url: str, is_cloud_function: bool = False) -> pd.D
         if not is_cloud_function:
             temp_dir_manager.cleanup() # Deletes the temporary folder and its contents
 
-def get_bydata_gam_report(SENDER_EMAIL, SUBJECT,oncloud=False):
-    mail = af.connect_to_gmail(EMAIL_USER, EMAIL_PASS)
+def get_bydata_gam_report(mail,oncloud=True):
     link = fetch_todays_report(mail)
     df = get_report_as_df(report_link,  is_cloud_function=oncloud)
     return df
