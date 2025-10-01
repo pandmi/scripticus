@@ -1,0 +1,231 @@
+# # bydata gam report
+# import imaplib
+# import email
+# from email.header import decode_header, make_header
+# from bs4 import BeautifulSoup
+# import html as ihtml
+# import re
+# import os
+# import time
+# import tempfile
+# import pandas as pd
+# from selenium import webdriver
+# from selenium.webdriver.chrome.service import Service as ChromeService
+# from selenium.webdriver.chrome.options import Options
+# from webdriver_manager.chrome import ChromeDriverManager
+
+
+# def _walk_parts(payload):
+#     """Yield all leaf parts (including the root if it has a body)."""
+#     if not payload:
+#         return
+#     parts = payload.get("parts")
+#     if parts:
+#         for p in parts:
+#             yield from _walk_parts(p)
+#     else:
+#         yield payload
+
+# def _decode_part_body(part):
+#     data = part.get("body", {}).get("data")
+#     if not data:
+#         return ""
+#     try:
+#         return base64.urlsafe_b64decode(data).decode("utf-8", errors="replace")
+#     except Exception:
+#         return ""
+
+# def _extract_csv_links(text):
+#     links = set()
+
+#     # 1) From HTML: any href ending with .csv
+#     for m in re.findall(r'href=[\'"]([^\'"]+?\.csv)(?:\?[^\'"]*)?[\'"]', text, flags=re.I):
+#         links.add(html.unescape(m))
+
+#     # 2) From plain text: any bare URL ending with .csv
+#     for m in re.findall(r'(https?://\S+?\.csv(?:\?\S*)?)', text, flags=re.I):
+#         links.add(m.rstrip(').,]'))  # trim common trailing punctuation
+
+#     return list(links)
+
+
+# def fetch_todays_report(mail, SENDER_EMAIL, SUBJECT):
+#     """
+#     Using an authenticated IMAP connection `mail`, find the most recent
+#     'Coingecko Finixio Report' email from SENDER_EMAIL, parse its HTML (or text)
+#     body, and return ONLY the true link target (href) — not the visible filename
+#     label — HTML-unescaped.
+#     """
+#     try:
+#         # 1) Select inbox and search by FROM + SUBJECT
+#         status, _ = mail.select("INBOX")
+#         if status != "OK":
+#             return None
+
+#         # IMAP search: wrap values in quotes; SUBJECT matches substring
+#         criteria = f'(FROM "{SENDER_EMAIL}" SUBJECT "{SUBJECT}*")'
+#         status, data = mail.search(None, criteria)
+#         if status != "OK" or not data or not data[0]:
+#             return None
+
+#         ids = data[0].split()
+#         if not ids:
+#             return None
+
+#         # Helper: decode bytes -> str with best-effort charset handling
+#         def _decode_part_bytes(payload_bytes, charset):
+#             if not payload_bytes:
+#                 return ""
+#             enc = (charset or "utf-8").strip().lower()
+#             try:
+#                 return payload_bytes.decode(enc, errors="replace")
+#             except Exception:
+#                 # Last resort
+#                 try:
+#                     return payload_bytes.decode("utf-8", errors="replace")
+#                 except Exception:
+#                     return ""
+
+#         # Iterate newest-first (IMAP returns ascending by default)
+#         for msg_id in reversed(ids):
+#             status, msg_data = mail.fetch(msg_id, "(RFC822)")
+#             if status != "OK" or not msg_data or not msg_data[0]:
+#                 continue
+
+#             raw_email = msg_data[0][1]
+#             msg = email.message_from_bytes(raw_email)
+
+#             # Decode and verify subject starts with SUBJECT (your original filter)
+#             raw_subj = msg.get("Subject", "")
+#             try:
+#                 subject_val = str(make_header(decode_header(raw_subj)))
+#             except Exception:
+#                 subject_val = raw_subj or ""
+
+#             if not subject_val.startswith(SUBJECT):
+#                 continue
+
+#             # Collect all text/plain and text/html parts
+#             html_bodies = []
+#             text_bodies = []
+
+#             if msg.is_multipart():
+#                 for part in msg.walk():
+#                     ctype = (part.get_content_type() or "").lower()
+#                     if ctype in ("text/plain", "text/html"):
+#                         payload = part.get_payload(decode=True)  # bytes
+#                         charset = part.get_content_charset()
+#                         body = _decode_part_bytes(payload, charset)
+#                         if ctype == "text/html":
+#                             html_bodies.append(body)
+#                         else:
+#                             text_bodies.append(body)
+#             else:
+#                 # Single-part message
+#                 ctype = (msg.get_content_type() or "").lower()
+#                 payload = msg.get_payload(decode=True)
+#                 charset = msg.get_content_charset()
+#                 body = _decode_part_bytes(payload, charset)
+#                 if ctype == "text/html":
+#                     html_bodies.append(body)
+#                 elif ctype == "text/plain":
+#                     text_bodies.append(body)
+
+#             # 1) Prefer HTML: parse anchors and return *only* the true href
+#             for html_part in html_bodies:
+#                 soup = BeautifulSoup(html_part, "html.parser")
+#                 for a in soup.find_all("a", href=True):
+#                     href = ihtml.unescape(a["href"]).strip()
+#                     anchor_text = (a.get_text() or "").strip()
+
+#                     if href:
+#                         if (
+#                             href.lower().endswith(".csv")
+#                             or "download" in href.lower()
+#                             or re.search(r"\.csv\b", anchor_text, flags=re.I)
+#                         ):
+#                             return href.lstrip("<").rstrip(">")
+
+#             # 2) Fallback: scan combined HTML+text as plain text for quoted href=...
+#             combined = "\n".join(html_bodies + text_bodies)
+#             m = re.search(r'href=[\'"]([^\'"]+)[\'"]', combined, flags=re.I)
+#             if m:
+#                 link = ihtml.unescape(m.group(1)).strip()
+#                 return link.lstrip("<").rstrip(">")
+
+#             # 3) Last resort: look for a bare URL
+#             m = re.search(r'(https?://[^\s\'">]+)', combined, flags=re.I)
+#             if m:
+#                 link = ihtml.unescape(m.group(1)).strip().rstrip(').,]').lstrip("<").rstrip(">")
+#                 return link
+
+#     except imaplib.IMAP4.error:
+#         # Authentication or IMAP-level error — mirror your original behavior
+#         return None
+#     except Exception:
+#         # Any other parsing/network hiccup
+#         return None
+
+#     return None
+
+# def get_report_as_df(download_url: str, is_cloud_function: bool = False) -> pd.DataFrame:
+#     """Launches Selenium to download a file and returns it as a DataFrame."""
+#     chrome_options = Options()
+#     temp_dir_manager = tempfile.TemporaryDirectory()
+#     download_dir = temp_dir_manager.name
+
+#     if is_cloud_function:
+#         print("Running in Cloud Run/Function mode.")
+#         chrome_options.add_argument("--headless")
+#         chrome_options.add_argument("--no-sandbox")
+#         chrome_options.add_argument("--disable-dev-shm-usage")
+#         chrome_options.add_argument("--window-size=1920,1080")
+#         download_dir = "/tmp"
+#         chrome_options.binary_location = "/opt/chrome/chrome"
+#         chromedriver_path = "/usr/local/bin/chromedriver"
+#         service = ChromeService(executable_path=chromedriver_path)
+#     else:
+#         print("Running in local mode.")
+#         service = ChromeService(ChromeDriverManager().install())
+
+#     prefs = {"download.default_directory": download_dir}
+#     chrome_options.add_experimental_option("prefs", prefs)
+#     driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+#     file_path = None
+#     try:
+#         files_before = set(os.listdir(download_dir))
+#         driver.get(download_url)
+#         for _ in range(45):
+#             files_after = set(os.listdir(download_dir))
+#             new_files = files_after - files_before
+#             if new_files and not any(f.endswith('.crdownload') for f in new_files):
+#                 downloaded_file_name = new_files.pop()
+#                 file_path = os.path.join(download_dir, downloaded_file_name)
+#                 print(f"File downloaded to: {file_path}")
+#                 if file_path.endswith('.csv'):
+#                     df = pd.read_csv(file_path)
+#                 elif file_path.endswith('.xlsx'):
+#                     df = pd.read_excel(file_path)
+#                 else:
+#                     raise ValueError(f"Unsupported file type: {downloaded_file_name}")
+#                 return df
+#             time.sleep(1)
+#         raise TimeoutError("File download timed out after 45 seconds.")
+#     finally:
+#         print("Cleaning up...")
+#         driver.quit()
+#         if is_cloud_function and file_path and os.path.exists(file_path):
+#             os.remove(file_path)
+#             print(f"Removed temporary file: {file_path}")
+#         elif not is_cloud_function:
+#             temp_dir_manager.cleanup()
+
+# def get_bydata_gam_report(mail, SENDER_EMAIL, SUBJECT, oncloud=True):
+#     """High-level function to fetch link from email and download report."""
+#     link = fetch_todays_report(mail, SENDER_EMAIL, SUBJECT)
+#     if not link:
+#         print("Could not find a download link in the email.")
+#         return pd.DataFrame()
+#     df = get_report_as_df(link, is_cloud_function=oncloud)
+#     return df
