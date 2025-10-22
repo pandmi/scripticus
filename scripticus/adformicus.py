@@ -1057,6 +1057,7 @@ def brand_cleanup(value, add_presale=False):
  
     mappings = {
     'bestwallet': 'bestwalletapp',
+    'beswallet': 'bestwalletapp',
     'snoertertoken': 'snorter',
     'tonaldtokendextoolsus': 'tonaldtrump',
     'bwapp': 'bestwalletapp',
