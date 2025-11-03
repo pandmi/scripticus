@@ -931,6 +931,15 @@ def ctrf_get_campaign_stats(token, url, start_date, end_date):
     df_ctrf=df_columns_rename(df_ctrf)
     df_ctrf['total_spend_campaign_currency']=df_ctrf['spent_budget'].astype(float)
     df_ctrf['total_spend']=df_ctrf['spent_budget'].astype(float)
+    
+    query = f"SELECT * FROM `dwh-landing-v1.exchange_rates.currency_api_usd_daily`WHERE Date >= '{start_date}' and Date <='{end_date}'"
+    currency_rates = client.query(query).result().to_dataframe()
+    eur_usd_today=currency_rates[currency_rates['To_Currency']=='EUR']
+    eur_usd_today=eur_usd_today[['Date','Rate']]
+    eur_usd_today.columns=['date', 'EUR_to_USD']
+    df_ctrf=df_convert_eur(df_ctrf,eur_usd_today)
+
+    
     df_ctrf=df_ctrf[['date','network','Brand','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
     df_ctrf['date'] = pd.to_datetime(df_ctrf['date'])
     return df_ctrf
