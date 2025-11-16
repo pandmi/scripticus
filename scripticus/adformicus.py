@@ -906,7 +906,7 @@ def ha_get_campaign_stats(username, password, base_url, start_date, end_date):
   
 # Cointtraffic
 
-def ctrf_get_campaign_stats(token, url, start_date, end_date):
+def ctrf_get_campaign_stats(client, token, url, start_date, end_date):
     headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
