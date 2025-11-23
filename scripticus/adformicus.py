@@ -1346,7 +1346,85 @@ def fetch_adform_data(dimensions, metrics, custom_filter, date_range, access_tok
     except Exception as e:
         return str(e)
 
+def adform_report_url(dimensions, metrics, custom_filter, date_range, access_token):
 
+    # Define the base URL for the Adform API
+    base_url = "https://api.adform.com"
+
+    # Define the endpoint for the Adform API
+    url = f"{base_url}/v1/buyer/stats/data"
+
+    # Define the headers, including the Authorization header with your access token
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    # Define the body of the request
+    full_filter = {
+        "date": {
+            "from": f"{date_range[0]}T00:00:00.000Z",
+            "to": f"{date_range[1]}T23:59:59.999Z"
+        },
+        "campaign": { "active": "all" }
+    }
+    full_filter.update(custom_filter or {})  # Merge custom filters, if any
+
+    body = {
+        "dimensions": dimensions,
+        "metrics": metrics,
+        "filter": full_filter,
+        "includeRowCount": True,
+        "includeTotals": False
+    }
+
+    try:
+        # Make the POST request to initiate the report generation
+        response = requests.post(url, headers=headers, data=json.dumps(body))
+        # time.sleep(1000)
+
+        # Check the response status code
+        if response.status_code == 202:
+            # Get the location URL to poll for report status
+            location_path = response.headers.get("Location")
+            if not location_path:
+                return "No Location header found in the response."
+            else:
+                # Ensure the location URL is complete
+                location_url = location_path if location_path.startswith("http") else base_url + location_path
+                return location_url
+
+        else:
+            return f"Failed to initiate report generation. Status code: {response.status_code}\n{response.text}"
+    
+    except Exception as e:
+        return str(e)
+
+def fetch_adform_data_by_rurl(location_url, access_token):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    try:
+        status_response = requests.get(location_url, headers=headers)
+        if status_response.status_code == 200:
+            # The report is ready
+            report_data = status_response.json()
+            # df = pd.json_normalize(report_data['reportData'])
+            columns = report_data['reportData']['columnHeaders']
+            rows = report_data['reportData']['rows']
+
+            # Create DataFrame
+            df = pd.DataFrame(rows, columns=columns)
+            return df
+        elif status_response.status_code == 202:
+            # The report is still being processed
+            time.sleep(50)  # Wait for 10 seconds before retrying
+        else:
+            return f"Failed to retrieve report data. Status code: {status_response.status_code}\n{status_response.text}"
+       
+    except Exception as e:
+        return str(e)
 
 
 # Currency conversions - Functions
