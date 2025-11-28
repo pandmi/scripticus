@@ -142,6 +142,41 @@ def sng_get_brand_conversion_stats(api_key, dimensions, metrics, cohort_metrics,
     return df_sing
 
 
+def sng_get_brand_conversion_raw(api_key, dimensions, metrics, cohort_metrics, start_date, end_date):
+    # Parse dimensions string into list
+    dimension_list = [dim.strip() for dim in dimensions.split(',')]
+    
+    # LTV cohort report
+    report_id_sing = sng_create_async_report(dimensions, metrics, cohort_metrics, start_date, end_date, api_key, cohort_periods='ltv')
+    download_url_sing = sng_get_report_download_url(report_id_sing, api_key)
+    df_sing = pd.read_csv(download_url_sing)
+    df_sing['date'] = df_sing['start_date']
+    df_sing['2760dafd981b4ae8988469327363bfd8'] = df_sing['2760dafd981b4ae8988469327363bfd8'].apply(ast.literal_eval)
+    df_sing['custom_signups'] = df_sing['2760dafd981b4ae8988469327363bfd8'].apply(lambda x: int(x['ltv']) if x['ltv'] is not None else 0)
+    df_sing['revenue'] = df_sing['revenue'].apply(ast.literal_eval)
+    df_sing['custom_revenue'] = df_sing['revenue'].apply(lambda x: float(x['ltv']) if x['ltv'] is not None else 0)
+    
+    # Dynamic groupby using dimension_list
+    groupby_cols = ['date'] + dimension_list
+    df_sing = df_sing[groupby_cols + ['custom_installs', 'custom_signups']].groupby(groupby_cols).sum().reset_index()
+    
+    # Actual cohort report
+    report_id = sng_create_async_report(dimensions, metrics, cohort_metrics, start_date, end_date, api_key, cohort_periods='actual')
+    download_url = sng_get_report_download_url(report_id, api_key)
+    df_sing_act = pd.read_csv(download_url)
+    df_sing_act['date'] = df_sing_act['start_date']
+    df_sing_act['2760dafd981b4ae8988469327363bfd8'] = df_sing_act['2760dafd981b4ae8988469327363bfd8'].apply(ast.literal_eval)
+    df_sing_act['custom_signups'] = df_sing_act['2760dafd981b4ae8988469327363bfd8'].apply(lambda x: int(x['actual']) if x['actual'] is not None else 0)
+    df_sing_act['revenue'] = df_sing_act['revenue'].apply(ast.literal_eval)
+    df_sing_act['custom_revenue'] = df_sing_act['revenue'].apply(lambda x: float(x['actual']) if x['actual'] is not None else 0)
+    
+    # Dynamic groupby using dimension_list
+    df_sing_act = df_sing_act[groupby_cols + ['custom_revenue']].groupby(groupby_cols).sum().reset_index()
+   
+    # Merge on date + all dimensions
+    df_sing = pd.merge(df_sing, df_sing_act, how='left', left_on=groupby_cols, right_on=groupby_cols)
+    
+    return df_sing
 
 # Spend
 
