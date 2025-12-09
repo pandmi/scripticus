@@ -1355,7 +1355,7 @@ def fetch_adform_data(dimensions, metrics, custom_filter, date_range, access_tok
             else:
                 # Ensure the location URL is complete
                 location_url = location_path if location_path.startswith("http") else base_url + location_path
-                time.sleep(50)  # Wait for the report to be generated
+                time.sleep(300)  # Wait for the report to be generated
 
                 # Polling loop
                 while True:
