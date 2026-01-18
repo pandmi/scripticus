@@ -580,6 +580,127 @@ def get_m2o_report(email, password, start_date, end_date):
     return df_m2o
     
 
+def get_m2o_creative_report(email, password, start_date, end_date):
+    token = authenticate_match2one(email, password)
+    token = token.replace('Bearer ', '')
+    request_data = {
+    "parameters": [
+        {
+            "key": "start_date",
+            "condition": "ge",
+            "value": start_date
+        },
+        {
+            "key": "end_date",
+            "condition": "lt",
+            "value": end_date
+        }
+    ],
+    "zoneId": "UTC"}
+    
+    name = 'creative_version_performance'
+    report_data = get_m2o_data(name, token, request_data)
+    request_data_lib = {
+        "parameters": [
+            
+        ]
+    }
+    report_data=report_data[report_data['impressions']>0]
+    report_data['start_date']=start_date
+    report_data['end_date']=end_date
+    report_data['network']='Match2One (Media)'
+    report_data['Brand'] = report_data['file_name'].str.split('_').str[2]
+    report_data['Brand']=report_data['Brand'].str.replace(' ', '').str.lower().apply(af.brand_cleanup)
+    report_data['Brand']=report_data['Brand'].apply(af.brand_clean_polish)
+    request_data_lib = {
+        "parameters": [
+    
+        ]
+    }
+    cr_dict = get_m2o_data('creative_versions_dictionary', token, request_data_lib)
+    cr_dict=cr_dict[['creative_version_id','creative_id','account_id','created_at']]
+    df_cr_ac=pd.merge(report_data, cr_dict,  how='left', left_on=['creative_version_id'], right_on=['creative_version_id'])
+    request_data_lib = {
+        "parameters": [
+    
+        ]
+    }
+    # name='accounts_dictionary'
+    ac_dict = get_m2o_data('accounts_dictionary', token, request_data_lib)
+    ac_dict.columns=['account_id', 'account_name', 'account_status', 'created_at']
+    
+    ac_dict=ac_dict[['account_id', 'account_name', 'account_status']]
+    
+    df_m2o_=pd.merge(df_cr_ac, ac_dict,  how='left', left_on=['account_id'], right_on=['account_id'])
+    df_m2o_=df_m2o_[['start_date', 'end_date',  'account_id', 'account_name', 'account_status',  'network', 'Brand', 'creative_id',  'creative_version_id',  'created_at', 'kind', 'file_name', 'file_size', 'width',
+           'height', 'impressions', 'clicks', 'conversions', 'post_click_convs',
+           'post_view_convs', 'cpa', 'ctr', 'ctc', 'itc', 'cpm', 'cpc', 'aov',
+           'total_costs', 'revenue', 'post_click_revenue', 'post_view_revenue',
+           'roas', 'post_click_roas', 'post_view_roas', 'used_by_campaigns_count']]
+    return df_m2o_
+
+
+def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_date_overall):
+
+    all_dfs = []
+    current_date = start_date_overall  # Initialize the loop variable
+    max_retries = 5  # Prevent getting stuck on one bad date forever
+
+    while current_date <= end_date_overall:
+        
+        start_str = current_date.strftime('%Y-%m-%d')
+        month_label = current_date.strftime('%Y_%m')
+             
+        success = False
+        attempt = 0
+        
+        # Retry loop for the specific date
+        while not success and attempt < max_retries:
+            try:
+                # Call your actual function (Assumed to be defined elsewhere)
+                # Using start_str for both start and end to get daily data
+                df = get_m2o_creative_report(email, password, start_str, start_str)
+
+                if df is not None and not df.empty:
+                    df['month'] = month_label
+                    all_dfs.append(df)
+                else:
+                    print(f"  -> Info: Report for {start_str} was empty.")
+
+                success = True
+                # Success sleep: Keep this to avoid hitting API rate limits
+                time.sleep(15) 
+
+            except Exception as e:
+                attempt += 1
+                error_msg = str(e)
+                print(f"  !! ERROR on attempt {attempt}/{max_retries} for {start_str}: {e}")
+
+                # Rate Limit Handling (429)
+                if "429" in error_msg or "TOO_MANY_REQUESTS" in error_msg:
+                    wait_time = 60
+                    print(f"  -> Rate limit hit. Waiting {wait_time}s...")
+                else:
+                    # Exponential backoff for other errors: 10s, 20s, 30s...
+                    wait_time = 10 * attempt 
+                    print(f"  -> Waiting {wait_time}s before retry...")
+                
+                time.sleep(wait_time)
+
+        if not success:
+            print(f"  !! SKIPPING {start_str} after {max_retries} failed attempts.")
+
+        # Always move to next date, even if this one failed after max_retries
+        current_date += timedelta(days=1)
+
+    # --- Combine Results ---
+    if all_dfs:
+        final_report_df = pd.concat(all_dfs, ignore_index=True)
+        return final_report_df
+    else:
+        print("\nNo data fetched.")
+        return pd.DataFrame()
+
 
 # Coinzilla
 
