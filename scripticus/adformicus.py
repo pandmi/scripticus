@@ -696,6 +696,13 @@ def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_da
     # --- Combine Results ---
     if all_dfs:
         final_report_df = pd.concat(all_dfs, ignore_index=True)
+        final_report_df['date']=final_report_df['start_date']
+        final_report_df=final_report_df[['date', 'account_id', 'account_name', 'account_status',  'network', 'Brand', 'creative_id',  'creative_version_id',  'created_at', 'kind', 'file_name', 'file_size', 'width',
+           'height', 'impressions', 'clicks', 'conversions', 'post_click_convs',
+           'post_view_convs', 'cpa', 'ctr', 'ctc', 'itc', 'cpm', 'cpc', 'aov',
+           'total_costs', 'revenue', 'post_click_revenue', 'post_view_revenue',
+           'roas', 'post_click_roas', 'post_view_roas', 'used_by_campaigns_count']]
+        final_report_df['date'] = pd.to_datetime(final_report_df['date'])
         return final_report_df
     else:
         print("\nNo data fetched.")
