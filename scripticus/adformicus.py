@@ -2849,7 +2849,7 @@ def gmail_get_cgkgam_report(EMAIL_USER, EMAIL_PASS, SENDER_EMAIL, SUBJECT, first
         df['date'] = pd.to_datetime(df['Date'], errors="coerce").dt.strftime("%Y-%m-%d")
         df=df[df['date']>'2025-07-31']
         df['Creative'] = df['Creative'].str.replace(' ', '')
-        df['Brand']=df['Line item'].str.replace(' ', '').str.lower().apply(af.brand_cleanup).apply(af.brand_clean_polish)
+        df['Brand']=df['Line item'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
         df['creative_id'] = df['Creative'].str.split('_').str[0]
         df['network'] = np.where(df['Line item'].str.contains('Coingecko|CoinGecko'),  'Coingecko (Media)', 'Geckoterminal (Media)')
         df['impressions']=df['Ad server impressions']
