@@ -610,8 +610,8 @@ def get_m2o_creative_report(email, password, start_date, end_date):
     report_data['end_date']=end_date
     report_data['network']='Match2One (Media)'
     report_data['Brand'] = report_data['file_name'].str.split('_').str[2]
-    report_data['Brand']=report_data['Brand'].str.replace(' ', '').str.lower().apply(af.brand_cleanup)
-    report_data['Brand']=report_data['Brand'].apply(af.brand_clean_polish)
+    report_data['Brand']=report_data['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+    report_data['Brand']=report_data['Brand'].apply(brand_clean_polish)
     request_data_lib = {
         "parameters": [
     
