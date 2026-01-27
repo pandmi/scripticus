@@ -669,7 +669,7 @@ def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_da
 
                 success = True
                 # Success sleep: Keep this to avoid hitting API rate limits
-                time.sleep(62) 
+                time.sleep(90) 
 
             except Exception as e:
                 attempt += 1
@@ -678,7 +678,7 @@ def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_da
 
                 # Rate Limit Handling (429)
                 if "429" in error_msg or "TOO_MANY_REQUESTS" in error_msg:
-                    wait_time = 62
+                    wait_time = 90
                     print(f"  -> Rate limit hit. Waiting {wait_time}s...")
                 else:
                     # Exponential backoff for other errors: 10s, 20s, 30s...
