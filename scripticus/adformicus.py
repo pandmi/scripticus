@@ -1223,12 +1223,15 @@ def brand_cleanup(value, add_presale=False):
             return 'wsm'
     if value_str == 'btchyper':
             return 'bitcoinhyper'
+    if value_str == 'esportsnews':
+            return 'esports'
     if value_str == 'bitcoinhyper':
             return 'bitcoinhyper'
 
  
     mappings = {
     'bestwallet': 'bestwalletapp',
+    'esportsnews': 'esports',
     'beswallet': 'bestwalletapp',
     'snoertertoken': 'snorter',
     'tonaldtokendextoolsus': 'tonaldtrump',
