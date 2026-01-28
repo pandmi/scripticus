@@ -1592,6 +1592,67 @@ def adform_report_url(dimensions, metrics, custom_filter, date_range, access_tok
 #     except Exception as e:
 #         return str(e)
 
+# def fetch_adform_data_by_rurl(location_url, access_token, max_wait_seconds=600, poll_interval=50):
+#     """
+#     Poll the report URL until data is ready, then return as DataFrame.
+    
+#     Args:
+#         location_url: URL returned by adform_report_url()
+#         access_token: Adform API token
+#         max_wait_seconds: Maximum time to wait for report (default 10 min)
+#         poll_interval: Seconds between status checks (default 50s)
+    
+#     Returns:
+#         pd.DataFrame with report data
+#     """
+#     import time
+#     import logging
+    
+#     headers = {
+#         "Authorization": f"Bearer {access_token}",
+#         "Content-Type": "application/json"
+#     }
+    
+#     start_time = time.time()
+#     attempt = 0
+    
+#     while True:
+#         elapsed = time.time() - start_time
+#         attempt += 1
+        
+#         if elapsed > max_wait_seconds:
+#             raise Exception(f"Report not ready after {max_wait_seconds} seconds")
+        
+#         logging.info(f"Polling attempt {attempt}: checking report status (elapsed: {int(elapsed)}s)...")
+        
+#         try:
+#             status_response = requests.get(location_url, headers=headers)
+            
+#             if status_response.status_code == 200:
+#                 # The report is ready
+#                 logging.info("Report ready! Parsing data...")
+#                 report_data = status_response.json()
+#                 columns = report_data['reportData']['columnHeaders']
+#                 rows = report_data['reportData']['rows']
+#                 df = pd.DataFrame(rows, columns=columns)
+#                 logging.info(f"Successfully fetched {len(df)} rows")
+#                 return df
+            
+#             elif status_response.status_code == 202:
+#                 # The report is still being processed
+#                 logging.info(f"Report still processing (202). Waiting {poll_interval}s...")
+#                 time.sleep(poll_interval)
+#                 continue
+            
+#             else:
+#                 raise Exception(f"Failed to retrieve report data. Status code: {status_response.status_code}\n{status_response.text}")
+        
+#         except requests.exceptions.RequestException as e:
+#             logging.warning(f"Request error on attempt {attempt}: {e}. Retrying in {poll_interval}s...")
+#             time.sleep(poll_interval)
+#             continue
+# Currency conversions - Functions
+
 def fetch_adform_data_by_rurl(location_url, access_token, max_wait_seconds=600, poll_interval=50):
     """
     Poll the report URL until data is ready, then return as DataFrame.
@@ -1644,6 +1705,12 @@ def fetch_adform_data_by_rurl(location_url, access_token, max_wait_seconds=600, 
                 time.sleep(poll_interval)
                 continue
             
+            elif status_response.status_code == 404:
+                # Report not ready yet (Adform returns 404 for "not prepared yet")
+                logging.info(f"Report not ready yet (404). Waiting {poll_interval}s...")
+                time.sleep(poll_interval)
+                continue
+            
             else:
                 raise Exception(f"Failed to retrieve report data. Status code: {status_response.status_code}\n{status_response.text}")
         
@@ -1651,9 +1718,6 @@ def fetch_adform_data_by_rurl(location_url, access_token, max_wait_seconds=600, 
             logging.warning(f"Request error on attempt {attempt}: {e}. Retrying in {poll_interval}s...")
             time.sleep(poll_interval)
             continue
-# Currency conversions - Functions
-
-
 
 
 import pandas as pd
