@@ -3177,7 +3177,7 @@ def cl_brand_report(client, start_date, end_date):
     df_fs_corr_dsp_fecmc = pd.concat([df_fs_corr_dsp_fecmc, diff_df_cggt], ignore_index=True)
     
     # 5. Spend - fix budget allocation
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_staging.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
     df_fs_corr_fix_dictgt.fillna(0, inplace=True)
 
@@ -3197,8 +3197,8 @@ def cl_brand_report(client, start_date, end_date):
     df_w_cost['impressions'] = np.where(df_w_cost['network']=='Hue Ads (Media)', df_w_cost['adv_clicks'], df_w_cost['impressions'])
     df_w_cost['impressions'] = np.where(df_w_cost['network'].str.contains('Personaly|Moloco|Kayzen|Exoclick|Apple'), df_w_cost['adv_impressions'], df_w_cost['impressions'])
     df_w_cost['clicks'] = np.where(df_w_cost['network'].str.contains('Personaly|Moloco|Kayzen|Exoclick|Apple'), df_w_cost['adv_clicks'], df_w_cost['clicks'])
-    df_w_cost['impressions'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['impressions']-df_w_cost['del_impressions']), df_w_cost['impressions'])
-    df_w_cost['clicks'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['clicks']-df_w_cost['del_clicks']), df_w_cost['clicks'])
+    # df_w_cost['impressions'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['impressions']-df_w_cost['del_impressions']), df_w_cost['impressions'])
+    # df_w_cost['clicks'] = np.where(df_w_cost['network']=='DexScreener (Media)', (df_w_cost['clicks']-df_w_cost['del_clicks']), df_w_cost['clicks'])
     df_w_cost['impressions'] = np.where(((df_w_cost['network']=='Meta (Media)')|(df_w_cost['network']=='Twitter (Media)')), df_w_cost['adv_impressions'], df_w_cost['impressions'])
     df_w_cost['impressions'] = np.where(df_w_cost['network']=='Google Ads', df_w_cost['adv_impressions'], df_w_cost['impressions'])
     df_w_cost['clicks'] = np.where(df_w_cost['network']=='Google Ads', df_w_cost['adv_clicks'], df_w_cost['clicks'])
