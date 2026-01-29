@@ -3190,7 +3190,9 @@ def cl_brand_report(client, start_date, end_date):
 
     
     df_w_cost = pd.concat([df_w_cost, diff_df_gt], ignore_index=True)
-    df_w_cost['budget_to_allocate'] = df_w_cost[['total_spend_dsp', 'fix_budget','total_spend', 'total_spend_cmc','total_spend_eth']].max(axis=1)
+    # df_w_cost['budget_to_allocate'] = df_w_cost[['total_spend_dsp', 'fix_budget','total_spend', 'total_spend_cmc','total_spend_eth']].max(axis=1)
+    df_w_cost['budget_to_allocate'] = df_w_cost[['total_spend_dsp', 'fix_budget','total_spend', 'total_spend_cmc']].max(axis=1)
+    
     df_w_cost['impressions'] = np.where((df_w_cost['network']=='Etherscan (Media)'), df_w_cost['eth_impressions'], df_w_cost['impressions'])
     df_w_cost['total_spend'] = np.where(df_w_cost['network']=='Real Time Bidding (Media)', df_w_cost['total_spend'], df_w_cost['budget_to_allocate'])
     df_w_cost['impressions'] = np.where(df_w_cost['network']=='Explorads (Media)', df_w_cost['adv_clicks'], df_w_cost['impressions'])
