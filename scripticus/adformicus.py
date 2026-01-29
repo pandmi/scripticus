@@ -3138,17 +3138,16 @@ def cl_brand_report(client, start_date, end_date):
 
 
     # Etherscan
-    # query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
-    # df_etherscan = client.query(query).result().to_dataframe()
-    # df_etherscan.fillna(0, inplace=True)
-    # df_fs_corr_dsp_fe=pd.merge(df_fs_corr_dsp_f, df_etherscan,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
-    # diff_df_eth = df_etherscan.merge(df_fs_corr_dsp_f, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
-    # diff_df_eth = diff_df_eth.drop('_merge', axis=1)
-    # vertical_mapping = df_fs_corr_dsp_fe.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
-    # diff_df_eth['Vertical'] = diff_df_eth.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
-    # df_fs_corr_dsp_fe = pd.concat([df_fs_corr_dsp_fe, diff_df_eth], ignore_index=True)
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.etherscan_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_etherscan = client.query(query).result().to_dataframe()
+    df_etherscan.fillna(0, inplace=True)
+    df_fs_corr_dsp_fe=pd.merge(df_fs_corr_dsp_f, df_etherscan,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_eth = df_etherscan.merge(df_fs_corr_dsp_f, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_eth = diff_df_eth.drop('_merge', axis=1)
+    vertical_mapping = df_fs_corr_dsp_fe.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df_eth['Vertical'] = diff_df_eth.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    df_fs_corr_dsp_fe = pd.concat([df_fs_corr_dsp_fe, diff_df_eth], ignore_index=True)
 
-    df_fs_corr_dsp_fe=df_fs_corr_dsp_f
     
     # CoinMarketCap
     query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.coinmarketcap_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
@@ -3178,18 +3177,17 @@ def cl_brand_report(client, start_date, end_date):
     df_fs_corr_dsp_fecmc = pd.concat([df_fs_corr_dsp_fecmc, diff_df_cggt], ignore_index=True)
     
     # 5. Spend - fix budget allocation
-    # query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
-    # df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
-    # df_fs_corr_fix_dictgt.fillna(0, inplace=True)
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
+    df_fs_corr_fix_dictgt.fillna(0, inplace=True)
 
-    # 5. Final cost
-    # df_w_cost=pd.merge(df_fs_corr_dsp_fecmc, df_fs_corr_fix_dictgt,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
-    # diff_df_gt = df_fs_corr_fix_dictgt.merge(df_fs_corr_dsp_fecmc, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
-    # diff_df_gt = diff_df_gt.drop('_merge', axis=1)
-    # vertical_mapping = df_w_cost.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
-    # diff_df_gt['Vertical'] = diff_df_gt.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
+    5. Final cost
+    df_w_cost=pd.merge(df_fs_corr_dsp_fecmc, df_fs_corr_fix_dictgt,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
+    diff_df_gt = df_fs_corr_fix_dictgt.merge(df_fs_corr_dsp_fecmc, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
+    diff_df_gt = diff_df_gt.drop('_merge', axis=1)
+    vertical_mapping = df_w_cost.dropna(subset=['Vertical']).set_index('Brand')['Vertical'].to_dict()
+    diff_df_gt['Vertical'] = diff_df_gt.apply(lambda row: fill_vertical(row, vertical_mapping), axis=1)
 
-    df_w_cost = df_fs_corr_dsp_fecmc
     
     df_w_cost = pd.concat([df_w_cost, diff_df_gt], ignore_index=True)
     df_w_cost['budget_to_allocate'] = df_w_cost[['total_spend_dsp', 'fix_budget','total_spend', 'total_spend_cmc','total_spend_eth']].max(axis=1)
