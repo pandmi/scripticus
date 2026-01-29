@@ -3181,7 +3181,7 @@ def cl_brand_report(client, start_date, end_date):
     df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
     df_fs_corr_fix_dictgt.fillna(0, inplace=True)
 
-    5. Final cost
+    # 5. Final cost
     df_w_cost=pd.merge(df_fs_corr_dsp_fecmc, df_fs_corr_fix_dictgt,  how='left', left_on=['date','network', 'Brand'], right_on=['date','network', 'Brand'])
     diff_df_gt = df_fs_corr_fix_dictgt.merge(df_fs_corr_dsp_fecmc, on=['date','Brand', 'network'], how='left', indicator=True).query('_merge == "left_only"')
     diff_df_gt = diff_df_gt.drop('_merge', axis=1)
