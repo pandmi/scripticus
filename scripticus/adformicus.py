@@ -2588,7 +2588,7 @@ def fetch_fix_spend(client, start_date, end_date):
     fix_networks = df_fix_budget_rest.network.unique()
     fix_networks_sql = ", ".join(f"'{n}'" for n in fix_networks)
     
-    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
     df_fs_corr_dsp = client.query(query).result().to_dataframe()
     df_fs_corr_fix_dict=pd.merge(df_fs_corr_dsp, df_fix_budget_rest,  how='left', left_on=['network'], right_on=['network'])
     df_fs_corr_fix_dict=df_fs_corr_fix_dict[(df_fs_corr_fix_dict['monthly_budget']>0)&(df_fs_corr_fix_dict['impressions']>10)]
@@ -3027,7 +3027,7 @@ def fill_vertical(row, vertical_mapping):
 
 def cl_brand_report(client, start_date, end_date):
     # 1. Adform  Data
-    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_fs_corr = client.query(query).result().to_dataframe()
    
     # 2. DSP spend data 
