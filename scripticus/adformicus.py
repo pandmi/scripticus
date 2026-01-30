@@ -2587,8 +2587,10 @@ def fetch_fix_spend(client, start_date, end_date):
     df_fix_budget_rest['daily_budget'] = df_fix_budget_rest['monthly_budget'] / df_fix_budget_rest['days_in_month']
     fix_networks = df_fix_budget_rest.network.unique()
     fix_networks_sql = ", ".join(f"'{n}'" for n in fix_networks)
-    
-    query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
+   
+
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
+    # query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}' and network IN ({fix_networks_sql}) and  network != 'DexScreener (Media)'"
     df_fs_corr_dsp = client.query(query).result().to_dataframe()
     df_fs_corr_fix_dict=pd.merge(df_fs_corr_dsp, df_fix_budget_rest,  how='left', left_on=['network'], right_on=['network'])
     df_fs_corr_fix_dict=df_fs_corr_fix_dict[(df_fs_corr_fix_dict['monthly_budget']>0)&(df_fs_corr_fix_dict['impressions']>10)]
@@ -3027,7 +3029,8 @@ def fill_vertical(row, vertical_mapping):
 
 def cl_brand_report(client, start_date, end_date):
     # 1. Adform  Data
-    query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}'"
+    # query = f"SELECT * FROM `dwh-landing-v1.paid_media_staging.stg_adform_brand`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query = f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.adform_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_fs_corr = client.query(query).result().to_dataframe()
    
     # 2. DSP spend data 
@@ -3177,7 +3180,8 @@ def cl_brand_report(client, start_date, end_date):
     df_fs_corr_dsp_fecmc = pd.concat([df_fs_corr_dsp_fecmc, diff_df_cggt], ignore_index=True)
     
     # 5. Spend - fix budget allocation
-    query= f"SELECT * FROM `dwh-landing-v1.paid_media_staging.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    query= f"SELECT * FROM `dwh-landing-v1.paid_media_network_raw.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
+    # query= f"SELECT * FROM `dwh-landing-v1.paid_media_staging.fixnetworks_brand_daily`WHERE date >= '{start_date}' and date <='{end_date}'"
     df_fs_corr_fix_dictgt = client.query(query).result().to_dataframe()
     df_fs_corr_fix_dictgt.fillna(0, inplace=True)
 
@@ -3259,6 +3263,10 @@ def cl_brand_report(client, start_date, end_date):
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='thehighroller', 'Casino', df_w_cost['Vertical'])
     df_w_cost['Vertical']= np.where(df_w_cost['Brand']=='pepeunchained', 'Crypto', df_w_cost['Vertical'])
     df_w_cost=df_w_cost[(df_w_cost['network']!='Techopedia (Media)')&(df_w_cost['network']!='A-Ads (Media)')&(df_w_cost['network']!='Opera (Media)')&(df_w_cost['network']!='Cryptopolitan (Media)')]
+
+    df_w_cost=df_w_cost[(df_w_cost['network']!='DexScreener (Media)')&(df_w_cost['network']!='CoinCarp (Media)')&(df_w_cost['network']!='Etherscan (Media)')]
+
+
     df_w_cost=df_w_cost[(df_w_cost['date']>=start_date)&(df_w_cost['date']<=end_date)]
     report_metrics=['impressions', 'clicks', 'total_spend','total_spend_campaign_currency','Registration','WalletConnected','Deposit', 'Deposit_Sales','total_revenue','FTD','FTD_Sales', 'Install', 'SignUp']
     report_kpi=['CPM','CPC', 'CTR', 'Registration CPA', 'FTD CPA', 'Deposit CPA', 'ROAS', 'ROAS (35%)','ROI (35%)']
