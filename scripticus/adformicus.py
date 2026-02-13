@@ -1227,6 +1227,10 @@ def brand_cleanup(value, add_presale=False):
             return 'esports'
     if value_str == 'bitcoinhyper':
             return 'bitcoinhyper'
+    if value_str == 'coincasino.com':
+        return 'coincasino_com'
+    if value_str == 'coincasino.pro':
+        return 'coincasino_pro'
 
  
     mappings = {
