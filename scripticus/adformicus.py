@@ -847,49 +847,112 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by,command):
 
     return results 
 
-def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date):
-    token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None) 
-    df_cz_ps_ids=cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
+# def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date):
+#     token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None) 
+#     df_cz_ps_ids=cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
     
+#     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+#     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+#     group_by = "date"  
+#     command='statistics'
+#     # Initialize an empty DataFrame to store results
+#     all_data = pd.DataFrame()
+
+#     # Loop through each day in the date range
+#     current_date = start_date_dt
+#     while current_date <= end_date_dt:
+#         single_day = current_date.strftime("%Y-%m-%d")
+#         token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)  # Test with 'performance' or 'statistics'
+
+
+#         # Call the function for the specific day
+#         df_cz_ps = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
+
+#         # Add a column with the current date
+#         df_cz_ps['date'] = single_day
+
+#         # Append the results to the all_data DataFrame
+#         all_data = pd.concat([all_data, df_cz_ps], ignore_index=True)
+
+#         # Move to the next day
+#         current_date += timedelta(days=1)
+
+
+#     df_cz_ps=all_data
+
+#     df_cz_ps['network']='Coinzilla (Dextools)'
+#     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
+
+#     df_cz_ps['Brand']=df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+
+#     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
+
+
+#     df_cz_ps=df_columns_rename(df_cz_ps)
+    
+#     return df_cz_ps
+
+import time
+
+def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
+                           max_retries=5, retry_delay=3):
+    token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+    df_cz_ps_ids = cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
+
     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    group_by = "date"  
-    command='statistics'
-    # Initialize an empty DataFrame to store results
-    all_data = pd.DataFrame()
+    group_by = "date"
+    command = 'statistics'
 
-    # Loop through each day in the date range
+    all_data = pd.DataFrame()
     current_date = start_date_dt
+
     while current_date <= end_date_dt:
         single_day = current_date.strftime("%Y-%m-%d")
-        token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)  # Test with 'performance' or 'statistics'
+        token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)
 
+        day_result = None
+        last_error = None
 
-        # Call the function for the specific day
-        df_cz_ps = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
+        for attempt in range(1, max_retries + 1):
+            try:
+                result = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
+            except Exception as e:
+                result = None
+                last_error = e
 
-        # Add a column with the current date
-        df_cz_ps['date'] = single_day
+            if isinstance(result, pd.DataFrame):
+                day_result = result
+                break
 
-        # Append the results to the all_data DataFrame
-        all_data = pd.concat([all_data, df_cz_ps], ignore_index=True)
+            logging.warning(
+                f"[scripticus] {single_day}: attempt {attempt}/{max_retries} failed "
+                f"(got {type(result).__name__}, expected DataFrame). "
+                f"Likely SSL/network failure to coinzilla.io. Retrying..."
+            )
+            if attempt < max_retries:
+                time.sleep(retry_delay * attempt)  # exponential-ish backoff: 3s, 6s, 9s, 12s...
 
-        # Move to the next day
+        if day_result is None:
+            # Every retry failed for this day — do NOT silently skip it.
+            # Fail loudly so the caller knows the dataset is incomplete.
+            raise RuntimeError(
+                f"Failed to fetch Coinzilla data for {single_day} after {max_retries} attempts. "
+                f"Aborting entire pull ({start_date} to {end_date}) to avoid writing incomplete data. "
+                f"Last error: {last_error}"
+            )
+
+        day_result['date'] = single_day
+        all_data = pd.concat([all_data, day_result], ignore_index=True)
         current_date += timedelta(days=1)
 
-
-    df_cz_ps=all_data
-
-    df_cz_ps['network']='Coinzilla (Dextools)'
+    df_cz_ps = all_data
+    df_cz_ps['network'] = 'Coinzilla (Dextools)'
     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
-
-    df_cz_ps['Brand']=df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
-
+    df_cz_ps['Brand'] = df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
+    df_cz_ps = df_columns_rename(df_cz_ps)
 
-
-    df_cz_ps=df_columns_rename(df_cz_ps)
-    
     return df_cz_ps
 
 
