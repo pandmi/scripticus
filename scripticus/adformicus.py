@@ -711,116 +711,116 @@ def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_da
 
 # Coinzilla
 
-def cz_create_token(command, access_key, secret_key, body=None):
-    timestamp = int(time.time())  # Current Unix timestamp in seconds
-    body = ''  # Empty body if not provided
+# def cz_create_token(command, access_key, secret_key, body=None):
+#     timestamp = int(time.time())  # Current Unix timestamp in seconds
+#     body = ''  # Empty body if not provided
 
-    # Concatenate the required elements
-    signature_string = access_key + str(timestamp) + command + body + secret_key
-    signature = hashlib.sha256(signature_string.encode()).hexdigest()
+#     # Concatenate the required elements
+#     signature_string = access_key + str(timestamp) + command + body + secret_key
+#     signature = hashlib.sha256(signature_string.encode()).hexdigest()
 
-    # Create the token by base64 encoding
-    token_payload = {
-        "accessKey": access_key,
-        "timestamp": timestamp,
-        "signature": signature
-    }
-    token = base64.b64encode(json.dumps(token_payload).encode()).decode()
-    return token
+#     # Create the token by base64 encoding
+#     token_payload = {
+#         "accessKey": access_key,
+#         "timestamp": timestamp,
+#         "signature": signature
+#     }
+#     token = base64.b64encode(json.dumps(token_payload).encode()).decode()
+#     return token
 
 
 
-def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
-    """
-    Fetch campaign performance data from the Coinzilla API.
+# def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
+#     """
+#     Fetch campaign performance data from the Coinzilla API.
 
-    Parameters:
-        start_date (str): The start date for the data in YYYY-MM-DD format.
-        end_date (str): The end date for the data in YYYY-MM-DD format.
-        token (str): Authentication token for the API.
-        command (str): The API command to fetch specific data (default is 'statistics').
+#     Parameters:
+#         start_date (str): The start date for the data in YYYY-MM-DD format.
+#         end_date (str): The end date for the data in YYYY-MM-DD format.
+#         token (str): Authentication token for the API.
+#         command (str): The API command to fetch specific data (default is 'statistics').
 
-    Returns:
-        pd.DataFrame: DataFrame containing the campaign performance data.
-        str: Error message if the API request fails.
-    """
-    # Define the request headers with the token
-    headers = {
-        "Content-Type": "application/json",
-        "CZILLA-AUTHENTICATION": token
-    }
+#     Returns:
+#         pd.DataFrame: DataFrame containing the campaign performance data.
+#         str: Error message if the API request fails.
+#     """
+#     # Define the request headers with the token
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
 
-    # Build the URL for performance or statistics data
-    url = f"{cz_api_url}{command}"
+#     # Build the URL for performance or statistics data
+#     url = f"{cz_api_url}{command}"
 
-    # Add date parameters if specified
-    if start_date and end_date:
-        url += f"?startDate={start_date}&endDate={end_date}"
+#     # Add date parameters if specified
+#     if start_date and end_date:
+#         url += f"?startDate={start_date}&endDate={end_date}"
     
-    try:
-        # Send the request
-        status_response = requests.get(url, headers=headers)
+#     try:
+#         # Send the request
+#         status_response = requests.get(url, headers=headers)
         
-        # Check for a successful response
-        if status_response.status_code == 200:
-            report_data = status_response.json()
-            # Ensure the 'response' key exists before converting to a DataFrame
-            if 'response' in report_data:
-                return pd.DataFrame(report_data['response'])
-            else:
-                return "Error: 'response' key not found in API response."
-        else:
-            # Return detailed error message
-            return f"Error: {status_response.status_code}, {status_response.text}"
-    except requests.exceptions.RequestException as e:
-        # Handle any network-related errors
-        return f"Request failed: {str(e)}"
+#         # Check for a successful response
+#         if status_response.status_code == 200:
+#             report_data = status_response.json()
+#             # Ensure the 'response' key exists before converting to a DataFrame
+#             if 'response' in report_data:
+#                 return pd.DataFrame(report_data['response'])
+#             else:
+#                 return "Error: 'response' key not found in API response."
+#         else:
+#             # Return detailed error message
+#             return f"Error: {status_response.status_code}, {status_response.text}"
+#     except requests.exceptions.RequestException as e:
+#         # Handle any network-related errors
+#         return f"Request failed: {str(e)}"
 
 
 
-def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
-    # Define the request headers with the token
-    headers = {
-        "Content-Type": "application/json",
-        "CZILLA-AUTHENTICATION": token
-    }
-    if uid:
-        command=command+'/'+ f"{uid}"
-    else: 
-        command=command
+# def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
+#     # Define the request headers with the token
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
+#     if uid:
+#         command=command+'/'+ f"{uid}"
+#     else: 
+#         command=command
     
-    # Build the base URL for the statistics or performance endpoint
-    url = f"{cz_api_url}{command}"
+#     # Build the base URL for the statistics or performance endpoint
+#     url = f"{cz_api_url}{command}"
 
 
-    # Build query parameters
-    query_params = []
-    if start_date and end_date:
-        query_params.append(f"startDate={start_date}&endDate={end_date}")
-    if group_by:
-        query_params.append(f"group={group_by}")
+#     # Build query parameters
+#     query_params = []
+#     if start_date and end_date:
+#         query_params.append(f"startDate={start_date}&endDate={end_date}")
+#     if group_by:
+#         query_params.append(f"group={group_by}")
     
-    # Append query parameters to the URL
-    if query_params:
-        url += "?" + "&".join(query_params)
+#     # Append query parameters to the URL
+#     if query_params:
+#         url += "?" + "&".join(query_params)
 
     
-    # Send the request
-    status_response = requests.get(url, headers=headers)
+#     # Send the request
+#     status_response = requests.get(url, headers=headers)
     
-    # Check for a successful response
-    if status_response.status_code == 200:
-        report_data = status_response.json()
-        flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
-        df = pd.DataFrame(flattened_data).T 
-        df = df.apply(pd.to_numeric, errors='coerce')
+#     # Check for a successful response
+#     if status_response.status_code == 200:
+#         report_data = status_response.json()
+#         flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
+#         df = pd.DataFrame(flattened_data).T 
+#         df = df.apply(pd.to_numeric, errors='coerce')
         
-        # return status_response.json()
-        return df
-        # return url
+#         # return status_response.json()
+#         return df
+#         # return url
 
-    else:
-        return f"Error: {status_response.status_code}, {status_response.text}"
+#     else:
+#         return f"Error: {status_response.status_code}, {status_response.text}"
 
 
 
@@ -1053,9 +1053,214 @@ def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token
 #     return df_cz_ps
 
 
+# import time
+# import logging
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+# def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by, command,
+#                      max_retries=3, retry_delay=3):
+#     last_error = None
+#     for attempt in range(1, max_retries + 1):
+#         try:
+#             data = cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token,
+#                                                 uid=uid, group_by=group_by)
+#         except Exception as e:
+#             data = None
+#             last_error = e
+
+#         if isinstance(data, pd.DataFrame):
+#             data['name'] = name
+#             return uid, data
+
+#         logging.warning(
+#             f"[scripticus] UID {uid}: attempt {attempt}/{max_retries} failed "
+#             f"(got {type(data).__name__ if data is not None else 'None'}, expected DataFrame). Retrying..."
+#         )
+#         if attempt < max_retries:
+#             time.sleep(retry_delay * attempt)
+
+#     raise RuntimeError(f"Failed to fetch data for UID {uid} after {max_retries} attempts. Last error: {last_error}")
+
+
+# def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
+#                  max_retries=3, retry_delay=3, max_workers=8):
+#     results = []
+#     failed_uids = []
+
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         futures = {
+#             executor.submit(_fetch_uid_data, uid, name, start_date, end_date, cz_api_url, token,
+#                              group_by, command, max_retries, retry_delay): uid
+#             for uid, name in zip(df['uid'], df['name'])
+#         }
+#         for future in as_completed(futures):
+#             uid = futures[future]
+#             try:
+#                 _, data = future.result()
+#                 results.append(data)
+#             except RuntimeError as e:
+#                 logging.error(f"[scripticus] UID {uid}: permanently failed — {e}")
+#                 failed_uids.append(uid)
+
+#     if failed_uids:
+#         raise RuntimeError(
+#             f"Failed to fetch data for {len(failed_uids)} UID(s) after retries: {failed_uids}"
+#         )
+
+#     if results:
+#         return pd.concat(results, ignore_index=True)
+#     return pd.DataFrame()
+
+
+# def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
+#                            max_retries=3, retry_delay=3, max_workers=8):
+#     token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+#     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
+
+#     token = cz_create_token(command='statistics', access_key=access_key, secret_key=secret_key, body=None)
+#     group_by = "date"
+#     command = 'statistics'
+
+#     # ONE call per UID covering the whole date range, instead of one call
+#     # per UID per day. This is what actually reduces total API calls to
+#     # coinzilla.io, not just retries/concurrency around the same volume.
+#     df_cz_ps = get_cz_data(
+#         df_cz_ps_ids, start_date, end_date, api_url, token, group_by, command,
+#         max_retries=max_retries, retry_delay=retry_delay, max_workers=max_workers
+#     )
+
+#     if df_cz_ps.empty:
+#         return df_cz_ps
+
+#     df_cz_ps['network'] = 'Coinzilla (Dextools)'
+#     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
+#     df_cz_ps['Brand'] = df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+#     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
+#     df_cz_ps = df_columns_rename(df_cz_ps)
+
+#     return df_cz_ps
+# # Personally
+
+# def pers_get_campaign_stats(api_key, adv_id, start_date, end_date):
+#     f_start_date = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+#     f_end_date = datetime.strptime(end_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    
+#     base_url = "http://reporting.personaly.bid/rtb/singular"
+#     params = {
+#         'startDate': f_start_date,  # replace with actual start date in dd-mm-yyyy format
+#         'endDate': f_end_date,       # replace with actual end date in dd-mm-yyyy format
+#         'advertiserId': adv_id,   # replace with your advertiser ID
+#         'apiKey': api_key,         # replace with your API key
+#         'groupBy': 'date'              # grouping by date to get daily stats
+#     }
+
+#     response = requests.get(base_url, params=params)
+#     data = response.json()
+
+#     df_pers = pd.DataFrame(data)
+#     df_pers['network']='Personaly'
+
+#     df_pers['Brand'] = df_pers['campaign_name'].str.split('_').str[0]
+
+#     df_pers['Brand']=df_pers['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
+#     df_pers['Brand']=df_pers['Brand'].apply(brand_clean_polish)
+#     df_pers = add_presale_to_brand(df_pers, external_column='campaign_name')
+#     df_pers=df_columns_rename(df_pers)
+#     df_pers['total_spend']=df_pers['total_spend'].astype(float)
+#     df_pers['total_spend_campaign_currency']=df_pers['total_spend'].astype(float)
+#     df_pers['adv_impressions']=df_pers['impressions']
+
+#     df_pers['adv_clicks']=df_pers['clicks']
+#     df_pers['adv_installs']=df_pers['installs']
+#     df_pers=df_pers[['date','network','Brand','adv_impressions','adv_clicks','adv_installs','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
+#     df_pers['date'] = pd.to_datetime(df_pers['date'], format="%d-%m-%Y")
+#     return df_pers
+
+
 import time
+import json
+import base64
+import hashlib
 import logging
+import requests
+import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+def cz_create_token(command, access_key, secret_key, body=None):
+    timestamp = int(time.time())
+    body = ''  # Empty body if not provided
+
+    signature_string = access_key + str(timestamp) + command + body + secret_key
+    signature = hashlib.sha256(signature_string.encode()).hexdigest()
+
+    token_payload = {
+        "accessKey": access_key,
+        "timestamp": timestamp,
+        "signature": signature
+    }
+    token = base64.b64encode(json.dumps(token_payload).encode()).decode()
+    return token
+
+
+def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
+    headers = {
+        "Content-Type": "application/json",
+        "CZILLA-AUTHENTICATION": token
+    }
+    url = f"{cz_api_url}{command}"
+    if start_date and end_date:
+        url += f"?startDate={start_date}&endDate={end_date}"
+
+    status_response = requests.get(url, headers=headers)
+
+    if status_response.status_code == 200:
+        report_data = status_response.json()
+        if 'response' in report_data:
+            return pd.DataFrame(report_data['response'])
+        else:
+            raise RuntimeError("cz_get_campaigns: 'response' key not found in API response.")
+    else:
+        raise RuntimeError(f"cz_get_campaigns failed: {status_response.status_code}, {status_response.text}")
+
+
+def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
+    headers = {
+        "Content-Type": "application/json",
+        "CZILLA-AUTHENTICATION": token
+    }
+    if uid:
+        command = command + '/' + f"{uid}"
+
+    url = f"{cz_api_url}{command}"
+
+    query_params = []
+    if start_date and end_date:
+        query_params.append(f"startDate={start_date}&endDate={end_date}")
+    if group_by:
+        query_params.append(f"group={group_by}")
+    if query_params:
+        url += "?" + "&".join(query_params)
+
+    status_response = requests.get(url, headers=headers)
+
+    if status_response.status_code != 200:
+        # Raise instead of returning an error string — this was likely the
+        # original source of the "list instead of DataFrame" bug, since a
+        # returned string would silently propagate upward unchecked.
+        raise RuntimeError(f"cz_get_campaign_performance failed: {status_response.status_code}, {status_response.text}")
+
+    report_data = status_response.json()
+    flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
+
+    df = pd.DataFrame(flattened_data).T  # dates end up as the INDEX here
+    df = df.apply(pd.to_numeric, errors='coerce')
+
+    # Turn the date index into an actual 'date' column
+    df = df.reset_index().rename(columns={'index': 'date'})
+
+    return df
 
 
 def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by, command,
@@ -1115,18 +1320,21 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
 
 def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
                            max_retries=3, retry_delay=3, max_workers=8):
-    token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
-    df_cz_ps_ids = cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
+    # Step 1: get the list of campaigns (uid + name) for this date range
+    campaigns_token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+    df_cz_ps_ids = cz_get_campaigns(start_date, end_date, campaigns_token, api_url, command='campaigns')
 
-    token = cz_create_token(command='statistics', access_key=access_key, secret_key=secret_key, body=None)
+    if df_cz_ps_ids.empty:
+        return pd.DataFrame()
+
+    # Step 2: fetch statistics for EACH campaign UID, ONE call per UID
+    # covering the whole date range (group=date) — NOT one call per day.
+    stats_token = cz_create_token(command='statistics', access_key=access_key, secret_key=secret_key, body=None)
     group_by = "date"
     command = 'statistics'
 
-    # ONE call per UID covering the whole date range, instead of one call
-    # per UID per day. This is what actually reduces total API calls to
-    # coinzilla.io, not just retries/concurrency around the same volume.
     df_cz_ps = get_cz_data(
-        df_cz_ps_ids, start_date, end_date, api_url, token, group_by, command,
+        df_cz_ps_ids, start_date, end_date, api_url, stats_token, group_by, command,
         max_retries=max_retries, retry_delay=retry_delay, max_workers=max_workers
     )
 
@@ -1140,43 +1348,6 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
     df_cz_ps = df_columns_rename(df_cz_ps)
 
     return df_cz_ps
-# Personally
-
-def pers_get_campaign_stats(api_key, adv_id, start_date, end_date):
-    f_start_date = datetime.strptime(start_date, "%Y-%m-%d").strftime("%d-%m-%Y")
-    f_end_date = datetime.strptime(end_date, "%Y-%m-%d").strftime("%d-%m-%Y")
-    
-    base_url = "http://reporting.personaly.bid/rtb/singular"
-    params = {
-        'startDate': f_start_date,  # replace with actual start date in dd-mm-yyyy format
-        'endDate': f_end_date,       # replace with actual end date in dd-mm-yyyy format
-        'advertiserId': adv_id,   # replace with your advertiser ID
-        'apiKey': api_key,         # replace with your API key
-        'groupBy': 'date'              # grouping by date to get daily stats
-    }
-
-    response = requests.get(base_url, params=params)
-    data = response.json()
-
-    df_pers = pd.DataFrame(data)
-    df_pers['network']='Personaly'
-
-    df_pers['Brand'] = df_pers['campaign_name'].str.split('_').str[0]
-
-    df_pers['Brand']=df_pers['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup)
-    df_pers['Brand']=df_pers['Brand'].apply(brand_clean_polish)
-    df_pers = add_presale_to_brand(df_pers, external_column='campaign_name')
-    df_pers=df_columns_rename(df_pers)
-    df_pers['total_spend']=df_pers['total_spend'].astype(float)
-    df_pers['total_spend_campaign_currency']=df_pers['total_spend'].astype(float)
-    df_pers['adv_impressions']=df_pers['impressions']
-
-    df_pers['adv_clicks']=df_pers['clicks']
-    df_pers['adv_installs']=df_pers['installs']
-    df_pers=df_pers[['date','network','Brand','adv_impressions','adv_clicks','adv_installs','total_spend','total_spend_campaign_currency']].groupby(['date','network','Brand']).sum().reset_index()
-    df_pers['date'] = pd.to_datetime(df_pers['date'], format="%d-%m-%Y")
-    return df_pers
-
 
 # Hueads
 
