@@ -1376,10 +1376,70 @@ def cz_create_token(command, access_key, secret_key, body=None):
     return token
 
 
+# def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
+#     """
+#     Fetch the list of campaigns (uid + name) from the Coinzilla API.
+#     """
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
+#     url = f"{cz_api_url}{command}"
+#     if start_date and end_date:
+#         url += f"?startDate={start_date}&endDate={end_date}"
+
+#     status_response = requests.get(url, headers=headers)
+
+#     if status_response.status_code == 200:
+#         report_data = status_response.json()
+#         if 'response' in report_data:
+#             return pd.DataFrame(report_data['response'])
+#         else:
+#             raise RuntimeError("cz_get_campaigns: 'response' key not found in API response.")
+#     else:
+#         raise RuntimeError(f"cz_get_campaigns failed: {status_response.status_code}, {status_response.text}")
+
+
+# def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
+#     """
+#     Fetch statistics for a single campaign UID over a date range, grouped by date.
+#     Returns a DataFrame with a 'date' column (not just the index).
+#     """
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
+#     if uid:
+#         command = command + '/' + f"{uid}"
+
+#     url = f"{cz_api_url}{command}"
+
+#     query_params = []
+#     if start_date and end_date:
+#         query_params.append(f"startDate={start_date}&endDate={end_date}")
+#     if group_by:
+#         query_params.append(f"group={group_by}")
+#     if query_params:
+#         url += "?" + "&".join(query_params)
+
+#     status_response = requests.get(url, headers=headers)
+
+#     if status_response.status_code != 200:
+#         # Raise instead of returning an error string — this was the original
+#         # source of the "list instead of DataFrame" bug, since a returned
+#         # string could silently propagate upward unchecked.
+#         raise RuntimeError(f"cz_get_campaign_performance failed: {status_response.status_code}, {status_response.text}")
+
+#     report_data = status_response.json()
+#     flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
+
+#     df = pd.DataFrame(flattened_data).T   # dates start out as the INDEX here
+#     df = df.apply(pd.to_numeric, errors='coerce')
+#     df = df.reset_index().rename(columns={'index': 'date'})   # turn the index into a real 'date' column
+
+#     return df
+
 def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
-    """
-    Fetch the list of campaigns (uid + name) from the Coinzilla API.
-    """
     headers = {
         "Content-Type": "application/json",
         "CZILLA-AUTHENTICATION": token
@@ -1388,7 +1448,7 @@ def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns
     if start_date and end_date:
         url += f"?startDate={start_date}&endDate={end_date}"
 
-    status_response = requests.get(url, headers=headers)
+    status_response = requests.get(url, headers=headers, timeout=30)  # <-- ADD THIS
 
     if status_response.status_code == 200:
         report_data = status_response.json()
@@ -1401,10 +1461,6 @@ def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns
 
 
 def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
-    """
-    Fetch statistics for a single campaign UID over a date range, grouped by date.
-    Returns a DataFrame with a 'date' column (not just the index).
-    """
     headers = {
         "Content-Type": "application/json",
         "CZILLA-AUTHENTICATION": token
@@ -1422,24 +1478,20 @@ def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token
     if query_params:
         url += "?" + "&".join(query_params)
 
-    status_response = requests.get(url, headers=headers)
+    status_response = requests.get(url, headers=headers, timeout=30)  # <-- ADD THIS
 
     if status_response.status_code != 200:
-        # Raise instead of returning an error string — this was the original
-        # source of the "list instead of DataFrame" bug, since a returned
-        # string could silently propagate upward unchecked.
         raise RuntimeError(f"cz_get_campaign_performance failed: {status_response.status_code}, {status_response.text}")
 
     report_data = status_response.json()
     flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
 
-    df = pd.DataFrame(flattened_data).T   # dates start out as the INDEX here
+    df = pd.DataFrame(flattened_data).T
     df = df.apply(pd.to_numeric, errors='coerce')
-    df = df.reset_index().rename(columns={'index': 'date'})   # turn the index into a real 'date' column
+    df = df.reset_index().rename(columns={'index': 'date'})
 
     return df
-
-
+    
 def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by, command,
                      max_retries=3, retry_delay=3):
     """Fetch one campaign UID's full date-range data, with retries. Returns (uid, DataFrame) or raises."""
