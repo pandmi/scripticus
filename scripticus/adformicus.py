@@ -1178,6 +1178,178 @@ def fetch_m2o_daily_creative_reports(email, password, start_date_overall, end_da
 #     return df_pers
 
 
+# import time
+# import json
+# import base64
+# import hashlib
+# import logging
+# import requests
+# import pandas as pd
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+# def cz_create_token(command, access_key, secret_key, body=None):
+#     timestamp = int(time.time())
+#     body = ''  # Empty body if not provided
+
+#     signature_string = access_key + str(timestamp) + command + body + secret_key
+#     signature = hashlib.sha256(signature_string.encode()).hexdigest()
+
+#     token_payload = {
+#         "accessKey": access_key,
+#         "timestamp": timestamp,
+#         "signature": signature
+#     }
+#     token = base64.b64encode(json.dumps(token_payload).encode()).decode()
+#     return token
+
+
+# def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
+#     url = f"{cz_api_url}{command}"
+#     if start_date and end_date:
+#         url += f"?startDate={start_date}&endDate={end_date}"
+
+#     status_response = requests.get(url, headers=headers)
+
+#     if status_response.status_code == 200:
+#         report_data = status_response.json()
+#         if 'response' in report_data:
+#             return pd.DataFrame(report_data['response'])
+#         else:
+#             raise RuntimeError("cz_get_campaigns: 'response' key not found in API response.")
+#     else:
+#         raise RuntimeError(f"cz_get_campaigns failed: {status_response.status_code}, {status_response.text}")
+
+
+# def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
+#     headers = {
+#         "Content-Type": "application/json",
+#         "CZILLA-AUTHENTICATION": token
+#     }
+#     if uid:
+#         command = command + '/' + f"{uid}"
+
+#     url = f"{cz_api_url}{command}"
+
+#     query_params = []
+#     if start_date and end_date:
+#         query_params.append(f"startDate={start_date}&endDate={end_date}")
+#     if group_by:
+#         query_params.append(f"group={group_by}")
+#     if query_params:
+#         url += "?" + "&".join(query_params)
+
+#     status_response = requests.get(url, headers=headers)
+
+#     if status_response.status_code != 200:
+#         # Raise instead of returning an error string — this was likely the
+#         # original source of the "list instead of DataFrame" bug, since a
+#         # returned string would silently propagate upward unchecked.
+#         raise RuntimeError(f"cz_get_campaign_performance failed: {status_response.status_code}, {status_response.text}")
+
+#     report_data = status_response.json()
+#     flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
+
+#     df = pd.DataFrame(flattened_data).T  # dates end up as the INDEX here
+#     df = df.apply(pd.to_numeric, errors='coerce')
+
+#     # Turn the date index into an actual 'date' column
+#     df = df.reset_index().rename(columns={'index': 'date'})
+
+#     return df
+
+
+# def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by, command,
+#                      max_retries=3, retry_delay=3):
+#     last_error = None
+#     for attempt in range(1, max_retries + 1):
+#         try:
+#             data = cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token,
+#                                                 uid=uid, group_by=group_by)
+#         except Exception as e:
+#             data = None
+#             last_error = e
+
+#         if isinstance(data, pd.DataFrame):
+#             data['name'] = name
+#             return uid, data
+
+#         logging.warning(
+#             f"[scripticus] UID {uid}: attempt {attempt}/{max_retries} failed "
+#             f"(got {type(data).__name__ if data is not None else 'None'}, expected DataFrame). Retrying..."
+#         )
+#         if attempt < max_retries:
+#             time.sleep(retry_delay * attempt)
+
+#     raise RuntimeError(f"Failed to fetch data for UID {uid} after {max_retries} attempts. Last error: {last_error}")
+
+
+# def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
+#                  max_retries=3, retry_delay=3, max_workers=8):
+#     results = []
+#     failed_uids = []
+
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         futures = {
+#             executor.submit(_fetch_uid_data, uid, name, start_date, end_date, cz_api_url, token,
+#                              group_by, command, max_retries, retry_delay): uid
+#             for uid, name in zip(df['uid'], df['name'])
+#         }
+#         for future in as_completed(futures):
+#             uid = futures[future]
+#             try:
+#                 _, data = future.result()
+#                 results.append(data)
+#             except RuntimeError as e:
+#                 logging.error(f"[scripticus] UID {uid}: permanently failed — {e}")
+#                 failed_uids.append(uid)
+
+#     if failed_uids:
+#         raise RuntimeError(
+#             f"Failed to fetch data for {len(failed_uids)} UID(s) after retries: {failed_uids}"
+#         )
+
+#     if results:
+#         return pd.concat(results, ignore_index=True)
+#     return pd.DataFrame()
+
+
+# def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
+#                            max_retries=3, retry_delay=3, max_workers=8):
+#     # Step 1: get the list of campaigns (uid + name) for this date range
+#     campaigns_token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+#     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, campaigns_token, api_url, command='campaigns')
+
+#     if df_cz_ps_ids.empty:
+#         return pd.DataFrame()
+
+#     # Step 2: fetch statistics for EACH campaign UID, ONE call per UID
+#     # covering the whole date range (group=date) — NOT one call per day.
+#     stats_token = cz_create_token(command='statistics', access_key=access_key, secret_key=secret_key, body=None)
+#     group_by = "date"
+#     command = 'statistics'
+
+#     df_cz_ps = get_cz_data(
+#         df_cz_ps_ids, start_date, end_date, api_url, stats_token, group_by, command,
+#         max_retries=max_retries, retry_delay=retry_delay, max_workers=max_workers
+#     )
+
+#     if df_cz_ps.empty:
+#         return df_cz_ps
+
+#     df_cz_ps['network'] = 'Coinzilla (Dextools)'
+#     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
+#     df_cz_ps['Brand'] = df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+#     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
+#     df_cz_ps = df_columns_rename(df_cz_ps)
+
+#     return df_cz_ps
+
+
 import time
 import json
 import base64
@@ -1205,6 +1377,9 @@ def cz_create_token(command, access_key, secret_key, body=None):
 
 
 def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns'):
+    """
+    Fetch the list of campaigns (uid + name) from the Coinzilla API.
+    """
     headers = {
         "Content-Type": "application/json",
         "CZILLA-AUTHENTICATION": token
@@ -1226,6 +1401,10 @@ def cz_get_campaigns(start_date, end_date, token, cz_api_url, command='campaigns
 
 
 def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token, uid=None, group_by=None):
+    """
+    Fetch statistics for a single campaign UID over a date range, grouped by date.
+    Returns a DataFrame with a 'date' column (not just the index).
+    """
     headers = {
         "Content-Type": "application/json",
         "CZILLA-AUTHENTICATION": token
@@ -1246,25 +1425,24 @@ def cz_get_campaign_performance(command, start_date, end_date, cz_api_url, token
     status_response = requests.get(url, headers=headers)
 
     if status_response.status_code != 200:
-        # Raise instead of returning an error string — this was likely the
-        # original source of the "list instead of DataFrame" bug, since a
-        # returned string would silently propagate upward unchecked.
+        # Raise instead of returning an error string — this was the original
+        # source of the "list instead of DataFrame" bug, since a returned
+        # string could silently propagate upward unchecked.
         raise RuntimeError(f"cz_get_campaign_performance failed: {status_response.status_code}, {status_response.text}")
 
     report_data = status_response.json()
     flattened_data = {date: metrics for entry in report_data['response'] for date, metrics in entry.items()}
 
-    df = pd.DataFrame(flattened_data).T  # dates end up as the INDEX here
+    df = pd.DataFrame(flattened_data).T   # dates start out as the INDEX here
     df = df.apply(pd.to_numeric, errors='coerce')
-
-    # Turn the date index into an actual 'date' column
-    df = df.reset_index().rename(columns={'index': 'date'})
+    df = df.reset_index().rename(columns={'index': 'date'})   # turn the index into a real 'date' column
 
     return df
 
 
 def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by, command,
                      max_retries=3, retry_delay=3):
+    """Fetch one campaign UID's full date-range data, with retries. Returns (uid, DataFrame) or raises."""
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
@@ -1290,6 +1468,11 @@ def _fetch_uid_data(uid, name, start_date, end_date, cz_api_url, token, group_by
 
 def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
                  max_retries=3, retry_delay=3, max_workers=8):
+    """
+    Fetch statistics for every campaign UID in df, concurrently, each covering
+    the full start_date..end_date range in a single call (no day-by-day looping).
+    Never silently ships incomplete data — raises if any UID fails after retries.
+    """
     results = []
     failed_uids = []
 
@@ -1320,6 +1503,10 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
 
 def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
                            max_retries=3, retry_delay=3, max_workers=8):
+    """
+    Main entry point. Fetches campaign list, then statistics for the full
+    date range in ONE call per UID (not one call per UID per day).
+    """
     # Step 1: get the list of campaigns (uid + name) for this date range
     campaigns_token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, campaigns_token, api_url, command='campaigns')
