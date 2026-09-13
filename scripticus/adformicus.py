@@ -892,10 +892,105 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by,command):
     
 #     return df_cz_ps
 
+# import time
+
+# def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
+#                            max_retries=5, retry_delay=3):
+#     token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+#     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
+
+#     start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+#     end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+#     group_by = "date"
+#     command = 'statistics'
+
+#     all_data = pd.DataFrame()
+#     current_date = start_date_dt
+
+#     while current_date <= end_date_dt:
+#         single_day = current_date.strftime("%Y-%m-%d")
+#         token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)
+
+#         day_result = None
+#         last_error = None
+
+#         for attempt in range(1, max_retries + 1):
+#             try:
+#                 result = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
+#             except Exception as e:
+#                 result = None
+#                 last_error = e
+
+#             if isinstance(result, pd.DataFrame):
+#                 day_result = result
+#                 break
+
+#             logging.warning(
+#                 f"[scripticus] {single_day}: attempt {attempt}/{max_retries} failed "
+#                 f"(got {type(result).__name__}, expected DataFrame). "
+#                 f"Likely SSL/network failure to coinzilla.io. Retrying..."
+#             )
+#             if attempt < max_retries:
+#                 time.sleep(retry_delay * attempt)  # exponential-ish backoff: 3s, 6s, 9s, 12s...
+
+#         if day_result is None:
+#             # Every retry failed for this day — do NOT silently skip it.
+#             # Fail loudly so the caller knows the dataset is incomplete.
+#             raise RuntimeError(
+#                 f"Failed to fetch Coinzilla data for {single_day} after {max_retries} attempts. "
+#                 f"Aborting entire pull ({start_date} to {end_date}) to avoid writing incomplete data. "
+#                 f"Last error: {last_error}"
+#             )
+
+#         day_result['date'] = single_day
+#         all_data = pd.concat([all_data, day_result], ignore_index=True)
+#         current_date += timedelta(days=1)
+
+#     df_cz_ps = all_data
+#     df_cz_ps['network'] = 'Coinzilla (Dextools)'
+#     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
+#     df_cz_ps['Brand'] = df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
+#     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
+#     df_cz_ps = df_columns_rename(df_cz_ps)
+
+#     return df_cz_ps
+
 import time
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def _fetch_single_day(df_cz_ps_ids, single_day, api_url, access_key, secret_key,
+                       group_by, command, max_retries=3, retry_delay=3):
+    """Fetch one day's data with retries. Returns (single_day, DataFrame) or raises."""
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)
+        try:
+            result = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
+        except Exception as e:
+            result = None
+            last_error = e
+
+        if isinstance(result, pd.DataFrame):
+            return single_day, result
+
+        logging.warning(
+            f"[scripticus] {single_day}: attempt {attempt}/{max_retries} failed "
+            f"(got {type(result).__name__ if result is not None else 'None'}, expected DataFrame). "
+            f"Retrying..."
+        )
+        if attempt < max_retries:
+            time.sleep(retry_delay * attempt)
+
+    raise RuntimeError(
+        f"Failed to fetch Coinzilla data for {single_day} after {max_retries} attempts. "
+        f"Last error: {last_error}"
+    )
+
 
 def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
-                           max_retries=5, retry_delay=3):
+                           max_retries=3, retry_delay=3, max_workers=8):
     token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, token, api_url, command='campaigns')
 
@@ -904,47 +999,48 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
     group_by = "date"
     command = 'statistics'
 
-    all_data = pd.DataFrame()
+    all_days = []
     current_date = start_date_dt
-
     while current_date <= end_date_dt:
-        single_day = current_date.strftime("%Y-%m-%d")
-        token = cz_create_token(command=command, access_key=access_key, secret_key=secret_key, body=None)
-
-        day_result = None
-        last_error = None
-
-        for attempt in range(1, max_retries + 1):
-            try:
-                result = get_cz_data(df_cz_ps_ids, single_day, single_day, api_url, token, group_by, command)
-            except Exception as e:
-                result = None
-                last_error = e
-
-            if isinstance(result, pd.DataFrame):
-                day_result = result
-                break
-
-            logging.warning(
-                f"[scripticus] {single_day}: attempt {attempt}/{max_retries} failed "
-                f"(got {type(result).__name__}, expected DataFrame). "
-                f"Likely SSL/network failure to coinzilla.io. Retrying..."
-            )
-            if attempt < max_retries:
-                time.sleep(retry_delay * attempt)  # exponential-ish backoff: 3s, 6s, 9s, 12s...
-
-        if day_result is None:
-            # Every retry failed for this day — do NOT silently skip it.
-            # Fail loudly so the caller knows the dataset is incomplete.
-            raise RuntimeError(
-                f"Failed to fetch Coinzilla data for {single_day} after {max_retries} attempts. "
-                f"Aborting entire pull ({start_date} to {end_date}) to avoid writing incomplete data. "
-                f"Last error: {last_error}"
-            )
-
-        day_result['date'] = single_day
-        all_data = pd.concat([all_data, day_result], ignore_index=True)
+        all_days.append(current_date.strftime("%Y-%m-%d"))
         current_date += timedelta(days=1)
+
+    day_frames = {}
+    failed_days = []
+
+    # Fetch all days concurrently instead of one-by-one
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(
+                _fetch_single_day, df_cz_ps_ids, day, api_url, access_key, secret_key,
+                group_by, command, max_retries, retry_delay
+            ): day
+            for day in all_days
+        }
+
+        for future in as_completed(futures):
+            day = futures[future]
+            try:
+                single_day, day_df = future.result()
+                day_frames[single_day] = day_df
+            except RuntimeError as e:
+                logging.error(f"[scripticus] {day}: permanently failed — {e}")
+                failed_days.append(day)
+
+    # Never silently ship incomplete data — abort loudly if ANY day failed
+    if failed_days:
+        raise RuntimeError(
+            f"Failed to fetch Coinzilla data for {len(failed_days)} day(s) after retries: "
+            f"{sorted(failed_days)}. Aborting entire pull ({start_date} to {end_date}) "
+            f"to avoid writing incomplete data."
+        )
+
+    # Reassemble in chronological order (dict preserves insertion, but we want date order)
+    all_data = pd.DataFrame()
+    for day in all_days:
+        day_df = day_frames[day]
+        day_df['date'] = day
+        all_data = pd.concat([all_data, day_df], ignore_index=True)
 
     df_cz_ps = all_data
     df_cz_ps['network'] = 'Coinzilla (Dextools)'
@@ -954,8 +1050,6 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
     df_cz_ps = df_columns_rename(df_cz_ps)
 
     return df_cz_ps
-
-
 # Personally
 
 def pers_get_campaign_stats(api_key, adv_id, start_date, end_date):
