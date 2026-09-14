@@ -1527,6 +1527,10 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
     """
     results = []
     failed_uids = []
+    total_uids = len(df)
+    completed_count = 0
+
+    logging.info(f"[scripticus] get_cz_data: starting fetch for {total_uids} UIDs, max_workers={max_workers}")
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
@@ -1534,14 +1538,20 @@ def get_cz_data(df, start_date, end_date, cz_api_url, token, group_by, command,
                              group_by, command, max_retries, retry_delay): uid
             for uid, name in zip(df['uid'], df['name'])
         }
+        logging.info(f"[scripticus] get_cz_data: all {len(futures)} tasks submitted to executor")
+
         for future in as_completed(futures):
             uid = futures[future]
+            completed_count += 1
             try:
                 _, data = future.result()
                 results.append(data)
+                logging.info(f"[scripticus] UID {uid} done ({completed_count}/{total_uids} completed)")
             except RuntimeError as e:
-                logging.error(f"[scripticus] UID {uid}: permanently failed — {e}")
+                logging.error(f"[scripticus] UID {uid}: permanently failed ({completed_count}/{total_uids}) — {e}")
                 failed_uids.append(uid)
+
+    logging.info(f"[scripticus] get_cz_data: all UIDs processed. {len(results)} succeeded, {len(failed_uids)} failed")
 
     if failed_uids:
         raise RuntimeError(
@@ -1559,16 +1569,20 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
     Main entry point. Fetches campaign list, then statistics for the full
     date range in ONE call per UID (not one call per UID per day).
     """
-    # Step 1: get the list of campaigns (uid + name) for this date range
+    logging.info("[scripticus] get_cz_campaign_stats: start")
+
     campaigns_token = cz_create_token(command='campaigns', access_key=access_key, secret_key=secret_key, body=None)
+    logging.info("[scripticus] got campaigns_token")
+
     df_cz_ps_ids = cz_get_campaigns(start_date, end_date, campaigns_token, api_url, command='campaigns')
+    logging.info(f"[scripticus] cz_get_campaigns returned {len(df_cz_ps_ids)} campaigns")
 
     if df_cz_ps_ids.empty:
+        logging.info("[scripticus] no campaigns found, returning empty DataFrame")
         return pd.DataFrame()
 
-    # Step 2: fetch statistics for EACH campaign UID, ONE call per UID
-    # covering the whole date range (group=date) — NOT one call per day.
     stats_token = cz_create_token(command='statistics', access_key=access_key, secret_key=secret_key, body=None)
+    logging.info("[scripticus] got stats_token, calling get_cz_data")
     group_by = "date"
     command = 'statistics'
 
@@ -1576,18 +1590,20 @@ def get_cz_campaign_stats(access_key, secret_key, api_url, start_date, end_date,
         df_cz_ps_ids, start_date, end_date, api_url, stats_token, group_by, command,
         max_retries=max_retries, retry_delay=retry_delay, max_workers=max_workers
     )
+    logging.info(f"[scripticus] get_cz_data returned {len(df_cz_ps)} rows total")
 
     if df_cz_ps.empty:
         return df_cz_ps
 
+    logging.info("[scripticus] applying brand/network/column transforms")
     df_cz_ps['network'] = 'Coinzilla (Dextools)'
     df_cz_ps['Brand'] = df_cz_ps['name'].str.split('-').str[0]
     df_cz_ps['Brand'] = df_cz_ps['Brand'].str.replace(' ', '').str.lower().apply(brand_cleanup).apply(brand_clean_polish)
     df_cz_ps = add_presale_to_brand(df_cz_ps, external_column='name')
     df_cz_ps = df_columns_rename(df_cz_ps)
 
+    logging.info(f"[scripticus] get_cz_campaign_stats: done, returning {len(df_cz_ps)} rows")
     return df_cz_ps
-
 # Hueads
 
 
